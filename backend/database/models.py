@@ -1,0 +1,160 @@
+"""
+Pydantic models for PostgreSQL Place module.
+Contains: DB settings and Place, District entity models.
+"""
+from typing import List, Optional, Dict, Any
+from shapely.geometry import Polygon
+
+from pydantic import BaseModel, Field, ConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# ====================================================================== #
+# Database Settings
+# ====================================================================== #
+
+class PlaceDBSettings(BaseSettings):
+    """
+    PostgreSQL connection settings.
+    Loads from env vars with prefix PLACE_DB_ or from .env file.
+
+    Example .env:
+        PLACE_DB_HOST=localhost
+        PLACE_DB_PORT=5432
+        PLACE_DB_NAME=mydb
+        PLACE_DB_USER=myuser
+        PLACE_DB_PASSWORD=secret
+    """
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="PLACE_DB_",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    host: str = Field(default="localhost", description="Database host")
+    port: int = Field(default=5432, description="Database port")
+    dbname: str = Field(description="Database name")
+    user: str = Field(description="Database user")
+    password: str = Field(description="Database password")
+
+    # Connection pool settings
+    pool_min_size: int = Field(default=2, description="Minimum pool size")
+    pool_max_size: int = Field(default=10, description="Maximum pool size")
+    connect_timeout: int = Field(default=10, description="Connection timeout (seconds)")
+
+    # Table name (can be overridden)
+    table_name: str = Field(default="t_place", description="Place table name")
+
+    @property
+    def conninfo(self) -> str:
+        """Build psycopg connection string."""
+        return (
+            f"host={self.host} "
+            f"port={self.port} "
+            f"dbname={self.dbname} "
+            f"user={self.user} "
+            f"password={self.password} "
+            f"connect_timeout={self.connect_timeout}"
+        )
+
+    @property
+    def conn_kwargs(self) -> Dict[str, Any]:
+        """Build psycopg connection kwargs."""
+        return {
+            "host": self.host,
+            "port": self.port,
+            "dbname": self.dbname,
+            "user": self.user,
+            "password": self.password,
+            "connect_timeout": self.connect_timeout,
+        }
+
+# ====================================================================== #
+# District Entity Model
+# ====================================================================== #
+
+class District(BaseModel):
+    """District entity — administrative division received from API."""
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    name: Optional[str] = Field(default=None, description="District name")
+    polygon: Optional[Polygon] = Field(default=None, description="District polygon")
+
+    @classmethod
+    def from_db_row(cls, row: Dict[str, Any]) -> "District":
+        """
+        Build District from API response.
+        """
+
+        column_map = {
+            "name": "name",
+            "polygon": "polygon",
+        }
+
+        # Map DB row keys to model fields
+        mapped_row: Dict[str, Any] = {}
+        for db_col, model_field in column_map.items():
+            if db_col in row:
+                mapped_row[model_field] = row[db_col]
+
+        return cls.model_validate(mapped_row)
+
+# ====================================================================== #
+# Place Entity Model
+# ====================================================================== #
+
+class Place(BaseModel):
+    """
+    Place entity from t_place table.
+    
+    NOTE: Adjust fields to match your actual t_place schema.
+    """
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    id: int = Field(description="Place ID (primary key)")
+    name: Optional[str] = Field(default=None, description="Place name")
+    polygon: Optional[Polygon] = Field(default=None, description="Place polygon")
+    districts: List[District] = Field(default_factory=list, description='List of districts')
+
+    @classmethod
+    def from_db_row(cls, row: Dict[str, Any]) -> "Place":
+        """
+        Build Place from database row (dict).
+        
+        Handles column name mapping if your DB columns differ
+        from model field names.
+        """
+        # Column name mapping: DB column -> model field
+        # Adjust if your t_place columns have different names
+        column_map = {
+            "id": "id",
+            "name": "name",
+            "polygon": "polygon",
+        }
+
+        # Map DB row keys to model fields
+        mapped_row: Dict[str, Any] = {}
+        for db_col, model_field in column_map.items():
+            if db_col in row:
+                mapped_row[model_field] = row[db_col]
+
+        return cls.model_validate(mapped_row)
+
+    def add_district(self, district: District):
+        """
+        Add a single district to this place.
+        
+        Args:
+            district: District object to add
+            
+        Raises:
+            ValueError: if district with same name already exists
+        """
+        if not isinstance(district, District):
+            raise TypeError("district must be of type District")
+
+        if district.name and any(d.name == district.name for d in self.districts):
+            raise ValueError(f"District with name {district.name} already exists")
+
+        self.districts.append(district) 
