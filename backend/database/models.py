@@ -3,10 +3,33 @@ Pydantic models for PostgreSQL Place module.
 Contains: DB settings and Place, District entity models.
 """
 from typing import List, Optional, Dict, Any
+import os
 from shapely.geometry import Polygon
 
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# ====================================================================== #
+# Env Settings
+# ====================================================================== #
+class EnvSettings(BaseSettings):
+    """Environment settings."""
+    model_config = SettingsConfigDict(
+        env_file=".env", 
+        env_prefix="ENV_", 
+        env_file_encoding="utf-8", 
+        extra="ignore"
+    )
+
+    path: str = Field(default=".env", description="Path to .env file")
+
+    @property
+    def env_files(self) -> tuple[str, ...]:
+        if self.path == ".env":
+            return (".env",)
+        else:
+            return (".env", self.path)
+    
 
 
 # ====================================================================== #
@@ -25,18 +48,19 @@ class PlaceDBSettings(BaseSettings):
         PLACE_DB_USER=myuser
         PLACE_DB_PASSWORD=secret
     """
+    
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_prefix="PLACE_DB_",
+        env_file=EnvSettings().env_files,
+        env_prefix="DB_",
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
     host: str = Field(default="localhost", description="Database host")
     port: int = Field(default=5432, description="Database port")
-    dbname: str = Field(description="Database name")
-    user: str = Field(description="Database user")
-    password: str = Field(description="Database password")
+    dbname: str = Field(default="dbname", description="Database name")
+    user: str = Field(default="user", description="Database user")
+    password: str = Field(default="password", description="Database password")
 
     # Connection pool settings
     pool_min_size: int = Field(default=2, description="Minimum pool size")
@@ -55,7 +79,8 @@ class PlaceDBSettings(BaseSettings):
             f"dbname={self.dbname} "
             f"user={self.user} "
             f"password={self.password} "
-            f"connect_timeout={self.connect_timeout}"
+            f"connect_timeout={self.connect_timeout} "
+            f"sslmode=require"
         )
 
     @property
@@ -113,7 +138,8 @@ class Place(BaseModel):
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
     id: int = Field(description="Place ID (primary key)")
-    name: Optional[str] = Field(default=None, description="Place name")
+    c_description: Optional[str] = Field(default=None, description="Place name")
+    c_language_code: Optional[str] = Field(default=None, description="Language code")
     polygon: Optional[Polygon] = Field(default=None, description="Place polygon")
     districts: List[District] = Field(default_factory=list, description='List of districts')
 
@@ -129,7 +155,8 @@ class Place(BaseModel):
         # Adjust if your t_place columns have different names
         column_map = {
             "id": "id",
-            "name": "name",
+            "c_description": "c_description",
+            "c_language_code": "c_language_code",
             "polygon": "polygon",
         }
 
