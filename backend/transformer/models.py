@@ -6,8 +6,6 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.api.models import GeoObject, GeocoderApiResponse
-
 
 class GeocodeResult(BaseModel):
     """Geocoding result with convenient access to address parts."""

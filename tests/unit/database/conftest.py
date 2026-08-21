@@ -2,9 +2,12 @@
 Fixtures for database unit tests.
 Provides factories for test data.
 """
+from unittest.mock import Mock
+
 import pytest
 
 from backend.database.models import Place, District
+from backend.database.service import PlaceService
 
 
 # ====================================================================
@@ -63,3 +66,15 @@ def place_factory():
 def district_factory():
     """Provides the DistrictFactory for creating test data."""
     return DistrictFactory.build
+
+# ====================================================================
+# Service
+# =====================================================================
+
+@pytest.fixture
+def place_repository():
+    return Mock()
+
+@pytest.fixture
+def place_service(place_repository):
+    return PlaceService(repository=place_repository)

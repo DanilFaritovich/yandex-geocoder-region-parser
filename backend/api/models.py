@@ -197,3 +197,61 @@ class GeocoderSettings(BaseSettings):
     lang: str = Field(default="ru_RU", description="Response language")
     retries: int = Field(default=1, description="Number of retry attempts")
     retry_delay: float = Field(default=1.0, description="Delay between retries (seconds)")
+
+# ====================================================================== #
+# Requests
+# ====================================================================== #
+
+class GeocodeRequest(BaseModel):
+    """Base request for Yandex Geocoder API."""
+
+    geocode: str = Field(
+        min_length=1,
+        description="Address or locality to geocode",
+    )
+    lang: str = Field(
+        default="ru_RU",
+        description="Response language",
+    )
+    kind: Optional[str] = Field(
+        default=None,
+        description="Type of found object",
+    )
+    format: str = Field(
+        default="json",
+        description="Response format",
+    )
+    results: int = Field(
+        default=1,
+        ge=1,
+        description="Maximum number of results",
+    )
+    skip: int = Field(
+        default=0,
+        ge=0,
+        description="Number of results to skip",
+    )
+
+    def params(self, api_key: str) -> dict[str, str | int]:
+        """Build Yandex Geocoder API query parameters."""
+        par = {
+            "apikey": api_key,
+            "geocode": self.geocode,
+            "lang": self.lang,
+            "format": self.format,
+            "results": self.results,
+            "skip": self.skip,
+        }
+        if self.kind is not None:
+            par["kind"] = self.kind
+
+        return par
+
+
+class GeocodeDistrictRequest(GeocodeRequest):
+    """Request for geocoding district information."""
+
+    def params(self, api_key: str) -> Dict[str, str | int]:
+        self.kind = "district"
+        par = super().params(api_key)
+        return par
