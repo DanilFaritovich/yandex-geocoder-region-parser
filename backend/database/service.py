@@ -1,25 +1,34 @@
 """
-Business logic layer. Depends on PlaceRepository abstraction,
-NOT on concrete connector.
-"""
-import logging
-from typing import Optional, List, Dict
+Business logic layer.
 
-from backend.database.models import Place
-from backend.database.repository import PlaceRepository
+Depends on PlaceRepository abstraction,
+NOT on concrete database connector.
+"""
+
+import logging
+from typing import Dict, List, Optional
+
 from backend.database.exceptions import (
     PlaceNotFoundError,
     PlaceValidationError,
 )
+from backend.database.models import Place
+from backend.database.repository import PlaceRepository
+
 
 class PlaceService:
     """
     Business service for place data operations.
-    
+
     Depends on PlaceRepository (abstraction), not on PlaceDBConnector.
-    This makes the service:
-    - Testable (inject a mock repository)
-    - Portable (swap PostgreSQL for any other implementation)
+
+    Responsibilities:
+    - validate input
+    - apply business rules
+    - handle business-level errors
+    - log business events
+
+    Does NOT contain database-specific logic.
     """
 
     MAX_BATCH_SIZE = 1000
@@ -27,74 +36,101 @@ class PlaceService:
     def __init__(
         self,
         repository: PlaceRepository,
-        enable_cache: bool = True,
         logger: Optional[logging.Logger] = None,
     ):
         """
         Args:
-            repository: any implementation of PlaceRepository
-            enable_cache: enable in-memory caching
-            logger: Logger instance
+            repository: Repository implementation.
+            logger: Optional logger instance.
         """
         self._repository = repository
-        self._cache: Dict[int, Place] = {}
-        self._enable_cache = enable_cache
         self._logger = logger or logging.getLogger(__name__)
+
+        self._logger.debug("PlaceService initialized")
 
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
 
     def get_place_by_id(self, place_id: int) -> Place:
-        """Get place by ID."""
+        """
+        Get a place by ID.
+
+        Raises:
+            PlaceValidationError: If place_id is invalid.
+            PlaceNotFoundError: If place does not exist.
+        """
         self._validate_place_id(place_id)
 
-        # Check cache
-        if self._enable_cache and place_id in self._cache:
-            return self._cache[place_id]
+        self._logger.debug(
+            "Fetching place: place_id=%d",
+            place_id,
+        )
 
-        # Call repository (abstraction)
         place = self._repository.get_by_id(place_id)
 
         if place is None:
-            raise PlaceNotFoundError(f"Place with id={place_id} not found")
+            self._logger.warning(
+                "Place not found: place_id=%d",
+                place_id,
+            )
 
-        # Cache
-        if self._enable_cache:
-            self._cache[place_id] = place
+            raise PlaceNotFoundError(
+                f"Place with id={place_id} not found"
+            )
+
+        self._logger.debug(
+            "Place loaded: place_id=%d",
+            place_id,
+        )
 
         return place
 
-    def get_places_by_ids(self, place_ids: List[int]) -> Dict[int, Place]:
-        """Get multiple places by IDs."""
+    def get_places_by_ids(
+        self,
+        place_ids: List[int],
+    ) -> Dict[int, Place]:
+        """
+        Get multiple places by IDs.
+
+        Missing places are not considered an error.
+        They are logged as warnings and omitted from the result.
+
+        Raises:
+            PlaceValidationError: If input is invalid.
+        """
         self._validate_batch_ids(place_ids)
+
         if not place_ids:
+            self._logger.debug(
+                "Empty place ID batch requested"
+            )
             return {}
 
-        result: Dict[int, Place] = {}
-        ids_to_fetch: List[int] = []
+        self._logger.debug(
+            "Fetching places: requested=%d",
+            len(place_ids),
+        )
 
-        for pid in place_ids:
-            if self._enable_cache and pid in self._cache:
-                result[pid] = self._cache[pid]
-            else:
-                ids_to_fetch.append(pid)
+        places = self._repository.get_by_ids(place_ids)
 
-        if ids_to_fetch:
-            fetched = self._repository.get_by_ids(ids_to_fetch)
-            result.update(fetched)
+        missing = set(place_ids) - set(places.keys())
 
-            if self._enable_cache:
-                self._cache.update(fetched)
+        if missing:
+            self._logger.warning(
+                "Places not found: requested=%d, found=%d, missing=%d",
+                len(place_ids),
+                len(places),
+                len(missing),
+            )
 
-            missing = set(ids_to_fetch) - set(fetched.keys())
-            if missing:
-                self._logger.warning("Places not found: %s", sorted(missing))
+        self._logger.debug(
+            "Places loaded: requested=%d, returned=%d",
+            len(place_ids),
+            len(places),
+        )
 
-        return result
-
-    def clear_cache(self) -> None:
-        self._cache.clear()
+        return places
 
     # ------------------------------------------------------------------ #
     # Validation
@@ -102,25 +138,57 @@ class PlaceService:
 
     @staticmethod
     def _validate_place_id(place_id: int) -> None:
-        if not isinstance(place_id, int):
-            raise PlaceValidationError(f"place_id must be int, got {type(place_id).__name__}")
-        if place_id <= 0:
-            raise PlaceValidationError(f"place_id must be positive, got {place_id}")
+        """
+        Validate a single place ID.
 
-    def _validate_batch_ids(self, place_ids: List[int]) -> None:
+        Raises:
+            PlaceValidationError: If ID is invalid.
+        """
+        if not isinstance(place_id, int):
+            raise PlaceValidationError(
+                f"place_id must be int, "
+                f"got {type(place_id).__name__}"
+            )
+
+        if place_id <= 0:
+            raise PlaceValidationError(
+                f"place_id must be positive, got {place_id}"
+            )
+
+    def _validate_batch_ids(
+        self,
+        place_ids: List[int],
+    ) -> None:
+        """
+        Validate a batch of place IDs.
+
+        Raises:
+            PlaceValidationError: If batch is invalid.
+        """
         if not isinstance(place_ids, list):
-            raise PlaceValidationError("place_ids must be a list")
+            raise PlaceValidationError(
+                "place_ids must be a list"
+            )
+
         if len(place_ids) > self.MAX_BATCH_SIZE:
-            raise PlaceValidationError(f"Batch too large: {len(place_ids)}")
-        for pid in place_ids:
-            self._validate_place_id(pid)
+            raise PlaceValidationError(
+                f"Batch too large: {len(place_ids)}"
+            )
+
+        for place_id in place_ids:
+            self._validate_place_id(place_id)
 
     # ------------------------------------------------------------------ #
     # Context manager
     # ------------------------------------------------------------------ #
 
-    def __enter__(self):
+    def __enter__(self) -> "PlaceService":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type,
+        exc_val,
+        exc_tb,
+    ) -> None:
         self._repository.close()
