@@ -132,6 +132,10 @@ class PlaceService:
 
         return places
 
+    def close(self) -> None:
+        """Close the underlying client."""
+        self._repository.close()
+
     # ------------------------------------------------------------------ #
     # Validation
     # ------------------------------------------------------------------ #
@@ -144,10 +148,9 @@ class PlaceService:
         Raises:
             PlaceValidationError: If ID is invalid.
         """
-        if not isinstance(place_id, int):
+        if isinstance(place_id, bool) or not isinstance(place_id, int):
             raise PlaceValidationError(
-                f"place_id must be int, "
-                f"got {type(place_id).__name__}"
+                f"place_id must be int, got {type(place_id).__name__}"
             )
 
         if place_id <= 0:
