@@ -70,25 +70,28 @@ class TestPlaceFromDbRow:
         """Test creating Place from complete database row."""
         row = {
             "id": 42,
-            "name": "Tula",
+            "c_description": "Tula",
+            "c_language_code": "ru",
             "polygon": Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
         }
 
         place = Place.from_db_row(row)
 
         assert place.id == 42
-        assert place.name == "Tula"
+        assert place.c_description == "Tula"
+        assert place.c_language_code == "ru"
         assert place.polygon == Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         assert place.districts == []
 
     def test_creates_place_from_partial_row(self):
         """Test creating Place from row with only required fields."""
-        row = {"id": 1, "name": "Moscow"}
+        row = {"id": 1, "c_description": "Moscow"}
 
         place = Place.from_db_row(row)
 
         assert place.id == 1
-        assert place.name == "Moscow"
+        assert place.c_description == "Moscow"
+        assert place.c_language_code is None
         assert place.polygon is None
         assert place.districts == []
 
@@ -96,7 +99,7 @@ class TestPlaceFromDbRow:
         """Test that extra columns in row are ignored."""
         row = {
             "id": 1,
-            "name": "Tula",
+            "c_description": "Tula",
             "extra_column": "should be ignored",
             "another_extra": 123,
         }
@@ -104,21 +107,21 @@ class TestPlaceFromDbRow:
         place = Place.from_db_row(row)
 
         assert place.id == 1
-        assert place.name == "Tula"
+        assert place.c_description == "Tula"
         assert not hasattr(place, "extra_column")
 
     def test_handles_none_values(self):
         """Test that None values are properly handled."""
         row = {
             "id": 1,
-            "name": None,
+            "c_description": None,
             "polygon": None,
         }
 
         place = Place.from_db_row(row)
 
         assert place.id == 1
-        assert place.name is None
+        assert place.c_description is None
         assert place.polygon is None
 
 
