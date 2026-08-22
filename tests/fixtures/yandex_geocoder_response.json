@@ -34,6 +34,10 @@
                       "name": "Дубай"
                     },
                     {
+                        "kind": "district",
+                        "name": "test_district"
+                    },
+                    {
                       "kind": "locality",
                       "name": "Дубай"
                     },
