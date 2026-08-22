@@ -92,6 +92,8 @@ logs/
 *.crt
 secrets/
 credentials/
+sql/work/
+!sql/example/*
 
 # ========================
 # Utils

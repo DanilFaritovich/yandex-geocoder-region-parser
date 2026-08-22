@@ -67,8 +67,7 @@ class PlaceDBSettings(BaseSettings):
     pool_max_size: int = Field(default=10, description="Maximum pool size")
     connect_timeout: int = Field(default=10, description="Connection timeout (seconds)")
 
-    # Table name (can be overridden)
-    table_name: str = Field(default="t_place", description="Place table name")
+    sql_file_path: str = Field(default="sql/work.sql", description="SQL file for work")
 
     @property
     def conninfo(self) -> str:
@@ -140,7 +139,7 @@ class Place(BaseModel):
     id: int = Field(description="Place ID (primary key)")
     c_description: Optional[str] = Field(default=None, description="Place name")
     c_language_code: Optional[str] = Field(default=None, description="Language code")
-    polygon: Optional[Polygon] = Field(default=None, description="Place polygon")
+    c_polygon: Optional[Polygon] = Field(default=None, description="Place polygon")
     districts: List[District] = Field(default_factory=list, description='List of districts')
 
     @classmethod
@@ -157,7 +156,7 @@ class Place(BaseModel):
             "id": "id",
             "c_description": "c_description",
             "c_language_code": "c_language_code",
-            "polygon": "polygon",
+            "c_polygon": "c_polygon",
         }
 
         # Map DB row keys to model fields

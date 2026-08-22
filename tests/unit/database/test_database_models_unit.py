@@ -72,7 +72,7 @@ class TestPlaceFromDbRow:
             "id": 42,
             "c_description": "Tula",
             "c_language_code": "ru",
-            "polygon": Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
+            "c_polygon": Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
         }
 
         place = Place.from_db_row(row)
@@ -80,7 +80,7 @@ class TestPlaceFromDbRow:
         assert place.id == 42
         assert place.c_description == "Tula"
         assert place.c_language_code == "ru"
-        assert place.polygon == Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
+        assert place.c_polygon == Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         assert place.districts == []
 
     def test_creates_place_from_partial_row(self):
@@ -92,7 +92,7 @@ class TestPlaceFromDbRow:
         assert place.id == 1
         assert place.c_description == "Moscow"
         assert place.c_language_code is None
-        assert place.polygon is None
+        assert place.c_polygon is None
         assert place.districts == []
 
     def test_ignores_extra_columns(self):
@@ -115,14 +115,14 @@ class TestPlaceFromDbRow:
         row = {
             "id": 1,
             "c_description": None,
-            "polygon": None,
+            "c_polygon": None,
         }
 
         place = Place.from_db_row(row)
 
         assert place.id == 1
         assert place.c_description is None
-        assert place.polygon is None
+        assert place.c_polygon is None
 
 
 class TestPlaceValidation:

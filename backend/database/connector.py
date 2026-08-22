@@ -11,8 +11,9 @@ Does NOT contain business logic.
 """
 
 import logging
+from pathlib import Path
 import time
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, LiteralString, Optional
 
 from psycopg import DatabaseError, OperationalError, ProgrammingError, sql
 from psycopg.rows import dict_row
@@ -22,7 +23,7 @@ from backend.database.exceptions import (
     PlaceConnectionError,
     PlaceQueryError,
 )
-from backend.database.models import Place, PlaceDBSettings
+from backend.database.models import PlaceDBSettings
 from backend.database.repository import PlaceRepository
 
 
@@ -57,16 +58,19 @@ class PlaceDBConnector(PlaceRepository):
     # PlaceRepository interface
     # ------------------------------------------------------------------ #
 
-    def get_by_id(self, place_id: int) -> Optional[Place]:
+    def get_by_id(self, place_id: int) -> Optional[Dict[str, Any]]:
         """
         Fetch a single place by ID.
 
         Returns:
             Place if found, otherwise None.
         """
-        return self.get_by_ids([place_id]).get(place_id)
+        rows = self.get_by_ids([place_id])
+        if rows:
+            return rows[0]
+        return 
 
-    def get_by_ids(self, place_ids: List[int]) -> Dict[int, Place]:
+    def get_by_ids(self, place_ids: List[int]) -> List[Dict[str, Any]]:
         """
         Fetch multiple places by IDs.
 
@@ -74,25 +78,15 @@ class PlaceDBConnector(PlaceRepository):
             Mapping of place ID to Place.
         """
         if not place_ids:
-            return {}
+            return []
 
         placeholders = sql.SQL(", ").join(
             sql.Placeholder() for _ in place_ids
         )
 
-        schema, table = self._get_table_identifier()
-
         query = sql.SQL(
-            """
-            SELECT
-                id,
-                c_description,
-                c_language_code
-            FROM {}
-            WHERE id IN ({})
-            """
+            self._get_sql("t_place.sql")
         ).format(
-            sql.Identifier(schema, table),
             placeholders,
         )
 
@@ -101,10 +95,7 @@ class PlaceDBConnector(PlaceRepository):
             tuple(place_ids),
         )
 
-        return {
-            row["id"]: Place.from_db_row(row)
-            for row in rows
-        }
+        return rows
 
     def close(self) -> None:
         """Close PostgreSQL connection pool."""
@@ -115,6 +106,16 @@ class PlaceDBConnector(PlaceRepository):
         self._pool = None
 
         self._logger.debug("PostgreSQL connection pool closed")
+
+    # ------------------------------------------------------------------ #
+    # Private methods
+    # ------------------------------------------------------------------ #
+
+    def _get_sql(self, file_name: str) -> str:
+        return Path(
+            self.settings.sql_file_path,
+            file_name,
+        ).read_text(encoding="utf-8")
 
     # ------------------------------------------------------------------ #
     # Connection pool
@@ -236,33 +237,6 @@ class PlaceDBConnector(PlaceRepository):
             params,
             fetcher=lambda cursor: cursor.fetchall(),
         )
-
-    # ------------------------------------------------------------------ #
-    # Helpers
-    # ------------------------------------------------------------------ #
-
-    def _get_table_identifier(self) -> tuple[str, str]:
-        """
-        Split configured table name into schema and table.
-
-        Expected format:
-            schema.table
-        """
-        try:
-            schema, table = self.settings.table_name.split(".", 1)
-        except ValueError as exc:
-            raise PlaceQueryError(
-                "Invalid table name configuration. "
-                "Expected format: schema.table"
-            ) from exc
-
-        if not schema or not table:
-            raise PlaceQueryError(
-                "Invalid table name configuration. "
-                "Expected format: schema.table"
-            )
-
-        return schema, table
 
     # ------------------------------------------------------------------ #
     # Context manager
