@@ -23,7 +23,7 @@ from backend.database.exceptions import (
     PlaceConnectionError,
     PlaceQueryError,
 )
-from backend.database.models import PlaceDBSettings
+from backend.database.models import Place, PlaceDBSettings
 from backend.database.repository import PlaceRepository
 
 
@@ -58,7 +58,7 @@ class PlaceDBConnector(PlaceRepository):
     # PlaceRepository interface
     # ------------------------------------------------------------------ #
 
-    def get_by_id(self, place_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, place_id: int) -> Optional[Place]:
         """
         Fetch a single place by ID.
 
@@ -70,7 +70,7 @@ class PlaceDBConnector(PlaceRepository):
             return rows[0]
         return 
 
-    def get_by_ids(self, place_ids: List[int]) -> List[Dict[str, Any]]:
+    def get_by_ids(self, place_ids: List[int]) -> List[Place]:
         """
         Fetch multiple places by IDs.
 
@@ -95,7 +95,12 @@ class PlaceDBConnector(PlaceRepository):
             tuple(place_ids),
         )
 
-        return rows
+        places = [
+            Place.from_db_row(row)
+            for row in rows
+        ]
+
+        return places
 
     def close(self) -> None:
         """Close PostgreSQL connection pool."""

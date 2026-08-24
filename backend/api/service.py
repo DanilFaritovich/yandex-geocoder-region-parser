@@ -21,6 +21,10 @@ class GeocodingService:
         self._client = client
         self._logger = logger or logging.getLogger(__name__)
 
+    # ================================================================
+    # Get district info by locality
+    # ================================================================
+
     def get_district_by_locality(
         self,
         locality: str,
@@ -47,7 +51,7 @@ class GeocodingService:
             skip,
         )
 
-        response = self._client.get_districts(
+        response = self._client.get_districts_by_query(
             query=locality,
             results=results,
             skip=skip,
@@ -56,6 +60,55 @@ class GeocodingService:
         self._logger.info(
             "District data received: locality=%r",
             locality,
+        )
+
+        return response
+
+    # ================================================================
+    # Get district info by coords
+    # ================================================================
+
+    def get_district_by_coords(
+        self,
+        longitude: float,
+        latitude: float
+    ) -> GeocoderApiResponse:
+        """Get geocoding data for a coords."""
+
+        return self.get_districts_by_coords(
+            longitude,
+            latitude,
+            results=1,
+        )
+
+    def get_districts_by_coords(
+        self,
+        longitude: float,
+        latitude: float,
+        results: int = 10,
+        skip: int = 0,
+    ) -> GeocoderApiResponse:
+        """Get geocoding data for a coords with pagination."""
+
+        self._logger.debug(
+            "Requesting districts: longitude=%r, latidude=%r, results=%d, skip=%d",
+            longitude,
+            latitude,
+            results,
+            skip,
+        )
+
+        response = self._client.get_districts_by_coords(
+            longitude=longitude,
+            latitude=latitude,
+            results=results,
+            skip=skip,
+        )
+
+        self._logger.info(
+            "District data received: longitude=%r, latidude=%r",
+            longitude,
+            latitude,
         )
 
         return response

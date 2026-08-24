@@ -28,10 +28,10 @@ class TestGetById:
 
         # Assert
         assert place is not None
-        assert place.id == place_id
+        assert place['id'] == place_id
         # Проверим что поля заполнены (не None для обязательных)
-        assert hasattr(place, 'c_description')
-        assert hasattr(place, 'c_language_code')
+        assert 'c_description' in place
+        assert 'c_language_code' in place
 
     def test_returns_none_for_nonexistent_id(
         self,
@@ -47,54 +47,51 @@ class TestGetById:
 
 @pytest.mark.integration
 class TestGetByIds:
-    """Tests for get_by_ids method."""
+    """Integration tests for PlaceDBConnector.get_by_ids()."""
 
     def test_returns_multiple_existing_places(
         self,
         db_connector: PlaceDBConnector,
         existing_place_ids: list[int],
-    ):
-        """Test that get_by_ids returns multiple existing places."""
+    ) -> None:
+        """Should return rows for all existing IDs."""
         # Arrange
-        assert len(existing_place_ids) >= 3, "Need at least 3 places for this test"
         test_ids = existing_place_ids[:3]
 
         # Act
-        places = db_connector.get_by_ids(test_ids)
+        rows = db_connector.get_by_ids(test_ids)
 
         # Assert
-        assert len(places) == 3
-        for place_id in test_ids:
-            assert place_id in places
-            assert places[place_id].id == place_id
+        assert len(rows) == 3
 
-    def test_returns_empty_dict_for_empty_list(
+        returned_ids = {row["id"] for row in rows}
+        assert returned_ids == set(test_ids)
+
+    def test_returns_empty_list_for_empty_input(
         self,
         db_connector: PlaceDBConnector,
-    ):
-        """Test that get_by_ids returns empty dict for empty input."""
+    ) -> None:
+        """Should return an empty list when no IDs are provided."""
         # Act
-        places = db_connector.get_by_ids([])
+        rows = db_connector.get_by_ids([])
 
         # Assert
-        assert places == {}
-        assert isinstance(places, dict)
+        assert rows == []
+        assert isinstance(rows, list)
 
     def test_skips_nonexistent_ids(
         self,
         db_connector: PlaceDBConnector,
         existing_place_ids: list[int],
-    ):
-        """Test that get_by_ids skips non-existent IDs."""
+    ) -> None:
+        """Should return only existing rows."""
         # Arrange
-        assert len(existing_place_ids) > 0
         existing_id = existing_place_ids[0]
         nonexistent_id = 999999999
 
         # Act
-        places = db_connector.get_by_ids([existing_id, nonexistent_id])
+        rows = db_connector.get_by_ids([existing_id, nonexistent_id])
 
         # Assert
-        assert len(places) == 1
-        assert existing_id in places
-        assert nonexistent_id not in places
+        assert len(rows) == 1
+        assert rows[0]["id"] == existing_id

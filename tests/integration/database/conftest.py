@@ -32,10 +32,8 @@ def existing_place_ids(db_connector: PlaceDBConnector) -> list[int]:
     """Get list of existing place IDs from database."""
     with db_connector._get_pool().connection() as conn:
         with conn.cursor() as cur:
-            schema, table = db_connector.settings.table_name.split(".")
-            query = sql.SQL("SELECT id FROM {} LIMIT 10").format(
-                sql.Identifier(schema, table)
-            )
+            query = "\n".join(Path("sql/work/t_place.sql").open("r", encoding="utf-8").readlines()[:-1])
+            query = sql.SQL(f"{query} LIMIT 10")
             cur.execute(query)
             rows = cur.fetchall()
             return [row[0] for row in rows]

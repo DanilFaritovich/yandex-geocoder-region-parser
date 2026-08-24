@@ -67,8 +67,8 @@ class PlaceService:
             place_id,
         )
 
-        row = self._repository.get_by_id(place_id)
-        if row is None:
+        place = self._repository.get_by_id(place_id)
+        if place is None:
             self._logger.warning(
                 "Place not found: place_id=%d",
                 place_id,
@@ -77,8 +77,6 @@ class PlaceService:
             raise PlaceNotFoundError(
                 f"Place with id={place_id} not found"
             )
-
-        place = Place.from_db_row(row)
 
         self._logger.debug(
             "Place loaded: place_id=%d",
@@ -113,11 +111,11 @@ class PlaceService:
             len(place_ids),
         )
 
-        rows = self._repository.get_by_ids(place_ids)
+        places = self._repository.get_by_ids(place_ids)
 
         places = {
-            row["id"]: Place.from_db_row(row)
-            for row in rows
+            place.id: place
+            for place in places
         }
 
         missing = set(place_ids) - set(places.keys())

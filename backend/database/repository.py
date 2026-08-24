@@ -20,12 +20,12 @@ class PlaceRepository(ABC):
     """
 
     @abstractmethod
-    def get_by_id(self, place_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, place_id: int) -> Optional[Place]:
         """Fetch single place by ID. Returns None if not found."""
         ...
 
     @abstractmethod
-    def get_by_ids(self, place_ids: List[int]) -> List[Dict[str, Any]]:
+    def get_by_ids(self, place_ids: List[int]) -> List[Place]:
         """Fetch multiple places by IDs. Returns {id: Place}."""
         ...
 

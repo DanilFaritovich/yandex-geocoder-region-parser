@@ -4,6 +4,7 @@ Contains: DB settings and Place, District entity models.
 """
 from typing import List, Optional, Dict, Any
 import os
+from shapely import wkt
 from shapely.geometry import Polygon
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -67,7 +68,7 @@ class PlaceDBSettings(BaseSettings):
     pool_max_size: int = Field(default=10, description="Maximum pool size")
     connect_timeout: int = Field(default=10, description="Connection timeout (seconds)")
 
-    sql_file_path: str = Field(default="sql/work.sql", description="SQL file for work")
+    sql_file_path: str = Field(default="sql/work", description="SQL file for work")
 
     @property
     def conninfo(self) -> str:
@@ -144,26 +145,29 @@ class Place(BaseModel):
 
     @classmethod
     def from_db_row(cls, row: Dict[str, Any]) -> "Place":
-        """
-        Build Place from database row (dict).
-        
-        Handles column name mapping if your DB columns differ
-        from model field names.
-        """
-        # Column name mapping: DB column -> model field
-        # Adjust if your t_place columns have different names
-        column_map = {
-            "id": "id",
-            "c_description": "c_description",
-            "c_language_code": "c_language_code",
-            "c_polygon": "c_polygon",
-        }
+        """Build Place from database row."""
 
-        # Map DB row keys to model fields
-        mapped_row: Dict[str, Any] = {}
-        for db_col, model_field in column_map.items():
-            if db_col in row:
-                mapped_row[model_field] = row[db_col]
+        polygon = None
+
+        polygon_text = row.get("c_polygon_text")
+
+        if polygon_text:
+            geometry = wkt.loads(polygon_text)
+
+            if not isinstance(geometry, Polygon):
+                raise ValueError(
+                    "Expected Polygon geometry, "
+                    f"got {geometry.geom_type}"
+                )
+
+            polygon = geometry
+
+        mapped_row = {
+            "id": row["id"],
+            "c_description": row.get("c_description"),
+            "c_language_code": row.get("c_language_code"),
+            "c_polygon": polygon,
+        }
 
         return cls.model_validate(mapped_row)
 
