@@ -16,7 +16,8 @@ from backend.api.exceptions import (
     YandexGeocoderParseError,
 )
 from backend.api.models import (
-    GeocodeDistrictRequest,
+    GeocodeDistrictCoordsRequest,
+    GeocodeDistrictQueryRequest,
     GeocodeRequest,
     GeocoderApiResponse,
     GeocoderSettings,
@@ -39,7 +40,7 @@ class YandexGeocoderConnector(GeocoderClient):
     def __init__(
         self,
         logger: Optional[logging.Logger] = None,
-    ):
+    ):        
         self.settings = GeocoderSettings()
         self._logger = logger or logging.getLogger(__name__)
         self._session = requests.Session()
@@ -56,15 +57,15 @@ class YandexGeocoderConnector(GeocoderClient):
     # GeocoderClient interface
     # ------------------------------------------------------------------ #
 
-    def get_districts(
+    def get_districts_by_query(
         self,
         query: str,
         results: int = 1,
         skip: int = 0,
     ) -> GeocoderApiResponse:
-        """Get district information by locality name."""
+        """Get districts information by locality name."""
 
-        geocode_request = GeocodeDistrictRequest(
+        geocode_request = GeocodeDistrictQueryRequest(
             geocode=query,
             lang=self.settings.lang,
             results=results,
@@ -72,6 +73,25 @@ class YandexGeocoderConnector(GeocoderClient):
         )
 
         return self._geocode(geocode_request)
+
+    def get_districts_by_coords(
+            self,
+            longitude: float,
+            latitude: float,
+            results: int = 1,
+            skip: int = 0,
+        ) -> GeocoderApiResponse:
+            """Get districts information by bbox."""
+
+    
+            geocode_request = GeocodeDistrictCoordsRequest(
+                lang=self.settings.lang,
+                results=results,
+                skip=skip,
+            )
+            geocode_request.coords = (longitude, latitude)
+    
+            return self._geocode(geocode_request)
 
     def close(self) -> None:
         """Close HTTP session."""
@@ -96,6 +116,8 @@ class YandexGeocoderConnector(GeocoderClient):
             api_key=self.settings.api_key,
         )
 
+        geocode = self._get_geocode_query(geocode_request)
+
         raw = self._request(params)
 
         try:
@@ -103,7 +125,7 @@ class YandexGeocoderConnector(GeocoderClient):
         except ValidationError as exc:
             self._logger.error(
                 "Failed to parse Yandex Geocoder response: query=%r",
-                geocode_request.geocode,
+                geocode,
             )
 
             raise YandexGeocoderParseError(
@@ -120,11 +142,26 @@ class YandexGeocoderConnector(GeocoderClient):
         self._logger.debug(
             "Yandex Geocoder response parsed: "
             "query=%r, results=%d",
-            geocode_request.geocode,
+            geocode,
             results_count,
         )
 
         return response
+
+    def _get_geocode_query(
+        self,
+        geocode_request: GeocodeRequest,
+    ) -> str:
+        """Execute geocoding request and parse API response."""
+
+        if type(geocode_request) is GeocodeDistrictQueryRequest:
+            return geocode_request.geocode
+        elif type(geocode_request) is GeocodeDistrictCoordsRequest:
+            return geocode_request.coords
+
+        raise ValueError(
+            f"Unsupported geocode request type: {type(geocode_request)}"
+        )
 
     def _request(self, params: dict[str, Any]) -> dict:
         """Execute HTTP request with retry logic."""

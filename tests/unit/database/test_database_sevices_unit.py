@@ -8,6 +8,7 @@ from backend.database.exceptions import (
 )
 from backend.database.models import Place
 from backend.database.service import PlaceService
+from tests.unit.database.conftest import PlaceFactory
 
 class TestPlaceServiceClose:
     def test_close(
@@ -81,12 +82,12 @@ class TestPlaceServiceGetById:
         place_service,
         place_repository,
     ):
-        place = Mock(spec=Place)
-        place_repository.get_by_id.return_value = place
+        place = PlaceFactory.build(id=1)
+        place_repository.get_by_id.return_value = place.model_dump(exclude_unset=True)
 
         result = place_service.get_place_by_id(1)
 
-        assert result is place
+        assert result == place
         place_repository.get_by_id.assert_called_once_with(1)
 
 class TestPlaceServiceGetByIds:
@@ -182,19 +183,21 @@ class TestPlaceServiceGetByIds:
         place_service,
         place_repository,
     ):
-        place1 = Mock(spec=Place)
-        place2 = Mock(spec=Place)
+        places = [
+            PlaceFactory.build(id=1),
+            PlaceFactory.build(id=2),
+        ]
+        places_dump = [
+            p.model_dump(exclude_unset=True) for p in places
+        ]
 
-        place_repository.get_by_ids.return_value = {
-            1: place1,
-            2: place2,
-        }
+        place_repository.get_by_ids.return_value = places_dump
 
         result = place_service.get_places_by_ids([1, 2])
 
         assert result == {
-            1: place1,
-            2: place2,
+            1: places[0],
+            2: places[1],
         }
 
         place_repository.get_by_ids.assert_called_once_with([1, 2])
@@ -204,16 +207,19 @@ class TestPlaceServiceGetByIds:
         place_service,
         place_repository,
     ):
-        place = Mock(spec=Place)
+        places = [
+            PlaceFactory.build(id=1),
+        ]
+        places_dump = [
+            p.model_dump(exclude_unset=True) for p in places
+        ]
 
-        place_repository.get_by_ids.return_value = {
-            1: place,
-        }
+        place_repository.get_by_ids.return_value = places_dump
 
         result = place_service.get_places_by_ids([1, 2])
 
         assert result == {
-            1: place,
+            1: places[0],
         }
 
         place_repository.get_by_ids.assert_called_once_with([1, 2])

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import logging
 from typing import Optional
 
@@ -52,6 +53,8 @@ class GeocodingTransformerService:
             for member in members
         ]
 
+        results = self._deduplicate_by_district(results)
+
         self._logger.info(
             "Geocoder response transformed: query=%r, results=%d",
             query,
@@ -59,6 +62,41 @@ class GeocodingTransformerService:
         )
 
         return results
+
+    def transfrom_districts_by_list(
+        self,
+        query: str,
+        responses: list[GeocoderApiResponse],
+    ) -> list[GeocodeResult]:
+        """Transform a list of responses."""
+
+        results = [
+            result
+            for response in responses
+            for result in self.transform_districts(
+                query=query,
+                response=response,
+            )
+        ]
+
+        return self._deduplicate_by_district(results)
+
+    def _deduplicate_by_district(
+        self,
+        results: Sequence[GeocodeResult],
+    ) -> list[GeocodeResult]:
+        unique: dict[str, GeocodeResult] = {}
+
+        for result in results:
+            if result.district is None:
+                continue
+
+            unique.setdefault(
+                result.district,
+                result,
+            )
+
+        return list(unique.values())
 
     @staticmethod
     def _transform_geo_object(

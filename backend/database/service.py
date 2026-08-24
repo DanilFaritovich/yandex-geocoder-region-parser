@@ -68,7 +68,6 @@ class PlaceService:
         )
 
         place = self._repository.get_by_id(place_id)
-
         if place is None:
             self._logger.warning(
                 "Place not found: place_id=%d",
@@ -113,6 +112,11 @@ class PlaceService:
         )
 
         places = self._repository.get_by_ids(place_ids)
+
+        places = {
+            place.id: place
+            for place in places
+        }
 
         missing = set(place_ids) - set(places.keys())
 

@@ -25,7 +25,7 @@ class PlaceRepository(ABC):
         ...
 
     @abstractmethod
-    def get_by_ids(self, place_ids: List[int]) -> Dict[int, Place]:
+    def get_by_ids(self, place_ids: List[int]) -> List[Place]:
         """Fetch multiple places by IDs. Returns {id: Place}."""
         ...
 

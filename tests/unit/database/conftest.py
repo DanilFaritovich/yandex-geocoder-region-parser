@@ -27,7 +27,8 @@ class PlaceFactory:
         """Create a Place with defaults, overridden by kwargs."""
         defaults = {
             "id": 1,
-            "name": None,
+            "c_description": None,
+            "c_language_code": None,
             "polygon": None,
         }
         defaults.update(kwargs)

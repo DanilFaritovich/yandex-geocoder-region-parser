@@ -205,17 +205,13 @@ class GeocoderSettings(BaseSettings):
 class GeocodeRequest(BaseModel):
     """Base request for Yandex Geocoder API."""
 
-    geocode: str = Field(
-        min_length=1,
-        description="Address or locality to geocode",
-    )
     lang: str = Field(
         default="ru_RU",
         description="Response language",
     )
     kind: Optional[str] = Field(
         default=None,
-        description="Type of found object",
+        description="Type of geographic object",
     )
     format: str = Field(
         default="json",
@@ -236,22 +232,58 @@ class GeocodeRequest(BaseModel):
         """Build Yandex Geocoder API query parameters."""
         par = {
             "apikey": api_key,
-            "geocode": self.geocode,
             "lang": self.lang,
             "format": self.format,
             "results": self.results,
             "skip": self.skip,
         }
+
         if self.kind is not None:
             par["kind"] = self.kind
 
         return par
 
+# ====================================================================== #
+# Requests By Query
+# ====================================================================== #
 
-class GeocodeDistrictRequest(GeocodeRequest):
-    """Request for geocoding district information."""
+class GeocodeDistrictQueryRequest(GeocodeRequest):
+    """Request for geocoding district information by query."""
+
+    geocode: str = Field(
+            min_length=1,
+            description="Address or locality to geocode",
+        )
 
     def params(self, api_key: str) -> Dict[str, str | int]:
         self.kind = "district"
         par = super().params(api_key)
+
+        par["geocode"] = self.geocode
         return par
+
+# ====================================================================== #
+# Requests By Coords
+# ====================================================================== #
+
+class GeocodeDistrictCoordsRequest(GeocodeDistrictQueryRequest):
+    """Request for geocoding district information by coords."""
+
+    geocode: str = Field(
+            default="",
+            description="Coordinates in 'lon,lat' format",
+        )
+
+    @property
+    def coords(self) -> str:
+        """Return coords as a string for Yandex Geocoder."""
+        return self.geocode
+
+    @coords.setter
+    def coords(
+        self,
+        value: tuple[float, float],
+    ) -> None:
+        """Set coords as a string for Yandex Geocoder."""
+        lon1, lat1 = value
+        self.geocode = f"{lon1},{lat1}"

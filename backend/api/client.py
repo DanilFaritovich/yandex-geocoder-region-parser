@@ -16,8 +16,13 @@ class GeocoderClient(ABC):
     """
 
     @abstractmethod
-    def get_districts(self, query: str, results: int = 1, skip: int = 0) -> GeocoderApiResponse:
-        """Get district info by locality name. Returns None if not found."""
+    def get_districts_by_query(self, query: str, results: int = 1, skip: int = 0) -> GeocoderApiResponse:
+        """Get district info by locality name."""
+        ...
+
+    @abstractmethod
+    def get_districts_by_coords(self, longitude: float, latitude: float, results: int = 1, skip: int = 0) -> GeocoderApiResponse:
+        """Get district info by coords."""
         ...
 
     @abstractmethod
