@@ -111,7 +111,6 @@ services:
 
     env_file:
       - .env.example
-      - ${ENV_PATH:-.env}
 
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
