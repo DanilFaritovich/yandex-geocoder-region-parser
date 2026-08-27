@@ -48,21 +48,6 @@ class GeocodingETLService:
                     raise ValueError
             self._process_locality_by_query(locality)
 
-    def run_by_coords(
-        self,
-        localities: Sequence[int],
-    ) -> None:
-        """Parse all districts for each locality by coords."""
-
-        for locality in localities:
-            place = self._place_service.get_place_by_id(locality)
-            polygon = place.c_polygon
-            place_id = place.id
-            if polygon is None:
-                self._logger.error("No locality found: id_place=%d", locality)
-                raise ValueError
-            self._process_locality_by_coords(place_id, polygon)
-
     def _process_locality_by_query(self, locality: str) -> None:
         """Parse all districts for a single locality by query."""
 
@@ -100,43 +85,3 @@ class GeocodingETLService:
                 ret_results.extend(results)
 
             skip += self.BATCH_SIZE
-
-    def _process_locality_by_coords(self, place_id: int, polygon: Polygon) -> None:
-        """Parse all districts for a single locality by coords."""
-
-        skip = 0
-
-        coords = self._geometry_service.polygon_to_points(polygon, distance_meters=1000)
-
-        self._logger.info(
-            "Processing locality: locality=%r, coords=%d",
-            polygon,
-            len(coords),
-        )
-
-        for point in coords:
-            longitude = point.x
-            latitude = point.y
-
-            self._logger.debug(
-                "Requesting districts: longitude=%r, latitude=%r, results=%d, skip=%d",
-                longitude,
-                latitude,
-                self.BATCH_SIZE,
-                skip,
-            )
-
-            response = self._geocoding_service.get_districts_by_coords(
-                longitude=longitude,
-                latitude=latitude,
-                results=self.BATCH_SIZE,
-                skip=skip,
-            )
-
-            result = self._transformer.transform_districts(
-                query=str(place_id),
-                response=response,
-            )
-
-            self._writer.save(result)
-        
