@@ -95,6 +95,50 @@ services:
 
     restart: unless-stopped
 
+  airflow-tests:
+    profiles:
+      - tests
+
+    build:
+      context: .
+      dockerfile: docker/airflow/Dockerfile
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+    env_file:
+      - .env
+      - ${ENV_PATH:?ENV_PATH is required}
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
+        postgresql+psycopg://airflow:airflow@postgres:5432/airflow
+
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+      AIRFLOW__API__BASE_URL: http://localhost:8080
+
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+
+      PYTHONPATH: /opt/airflow/project:/opt/airflow/project/airflow
+
+    volumes:
+      - .:/opt/airflow/project
+
+    working_dir: /opt/airflow/project
+
+    entrypoint: ["pytest"]
+
+    command:
+      - airflow/tests/
+      - -v
 
 volumes:
   airflow_postgres:
