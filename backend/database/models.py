@@ -68,6 +68,11 @@ class PlaceDBSettings(BaseSettings):
     pool_max_size: int = Field(default=10, description="Maximum pool size")
     connect_timeout: int = Field(default=10, description="Connection timeout (seconds)")
 
+    sslmode: str = Field(
+        default="require",
+        description="PostgreSQL SSL mode",
+    )
+
     sql_file_path: str = Field(default="sql/work", description="SQL file for work")
 
     @property
@@ -80,7 +85,7 @@ class PlaceDBSettings(BaseSettings):
             f"user={self.user} "
             f"password={self.password} "
             f"connect_timeout={self.connect_timeout} "
-            f"sslmode=require"
+            f"sslmode={self.sslmode}"
         )
 
     @property
