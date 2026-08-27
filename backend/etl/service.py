@@ -105,7 +105,6 @@ class GeocodingETLService:
         """Parse all districts for a single locality by coords."""
 
         skip = 0
-        responses: list[GeocoderApiResponse] = []
 
         coords = self._geometry_service.polygon_to_points(polygon, distance_meters=1000)
 
@@ -133,12 +132,11 @@ class GeocodingETLService:
                 results=self.BATCH_SIZE,
                 skip=skip,
             )
-            responses.append(response)
 
-        results = self._transformer.transfrom_districts_by_list(
-            query=str(place_id),
-            responses=responses,
-        )
+            result = self._transformer.transform_districts(
+                query=str(place_id),
+                response=response,
+            )
 
-        self._writer.save(results)
+            self._writer.save(result)
         
