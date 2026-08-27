@@ -1,9 +1,9 @@
 """
-Integration tests for PlaceDBConnector with real PostgreSQL database.
-Tests read existing data from database.
+Integration tests for PlaceDBConnector.
 
-Run with: pytest tests/integration/database -v
+Tests run against an isolated PostgreSQL container.
 """
+
 import pytest
 
 from backend.database.connector import PlaceDBConnector
@@ -11,37 +11,27 @@ from backend.database.connector import PlaceDBConnector
 
 @pytest.mark.integration
 class TestGetById:
-    """Tests for get_by_id method."""
+    """Integration tests for PlaceDBConnector.get_by_id()."""
 
     def test_returns_existing_place(
         self,
         db_connector: PlaceDBConnector,
-        existing_place_ids: list[int],
     ):
-        """Test that get_by_id returns existing place correctly."""
-        # Arrange
-        assert len(existing_place_ids) > 0, "Database has no places to test"
-        place_id = existing_place_ids[0]
+        """Return an existing place by ID."""
+        place = db_connector.get_by_id(1)
 
-        # Act
-        place = db_connector.get_by_id(place_id)
-
-        # Assert
         assert place is not None
-        assert place['id'] == place_id
-        # Проверим что поля заполнены (не None для обязательных)
-        assert 'c_description' in place
-        assert 'c_language_code' in place
+        assert place.id == 1
+        assert place.c_description == "Yerevan"
+        assert place.c_language_code == "hy"
 
     def test_returns_none_for_nonexistent_id(
         self,
         db_connector: PlaceDBConnector,
     ):
-        """Test that get_by_id returns None for non-existent ID."""
-        # Act
-        place = db_connector.get_by_id(999999999)
+        """Return None when place does not exist."""
+        place = db_connector.get_by_id(999999)
 
-        # Assert
         assert place is None
 
 
@@ -49,49 +39,48 @@ class TestGetById:
 class TestGetByIds:
     """Integration tests for PlaceDBConnector.get_by_ids()."""
 
-    def test_returns_multiple_existing_places(
+    def test_returns_multiple_places(
         self,
         db_connector: PlaceDBConnector,
-        existing_place_ids: list[int],
-    ) -> None:
-        """Should return rows for all existing IDs."""
-        # Arrange
-        test_ids = existing_place_ids[:3]
+    ):
+        """Return all existing places for requested IDs."""
+        places = db_connector.get_by_ids([1, 2, 3])
 
-        # Act
-        rows = db_connector.get_by_ids(test_ids)
+        assert len(places) == 3
 
-        # Assert
-        assert len(rows) == 3
-
-        returned_ids = {row["id"] for row in rows}
-        assert returned_ids == set(test_ids)
+        assert {place.id for place in places} == {
+            1,
+            2,
+            3,
+        }
 
     def test_returns_empty_list_for_empty_input(
         self,
         db_connector: PlaceDBConnector,
-    ) -> None:
-        """Should return an empty list when no IDs are provided."""
-        # Act
-        rows = db_connector.get_by_ids([])
+    ):
+        """Return empty list for empty ID list."""
+        places = db_connector.get_by_ids([])
 
-        # Assert
-        assert rows == []
-        assert isinstance(rows, list)
+        assert places == []
 
     def test_skips_nonexistent_ids(
         self,
         db_connector: PlaceDBConnector,
-        existing_place_ids: list[int],
-    ) -> None:
-        """Should return only existing rows."""
-        # Arrange
-        existing_id = existing_place_ids[0]
-        nonexistent_id = 999999999
+    ):
+        """Return only existing places."""
+        places = db_connector.get_by_ids([1, 999999])
 
-        # Act
-        rows = db_connector.get_by_ids([existing_id, nonexistent_id])
+        assert len(places) == 1
+        assert places[0].id == 1
 
-        # Assert
-        assert len(rows) == 1
-        assert rows[0]["id"] == existing_id
+    def test_returns_places_in_requested_set(
+        self,
+        db_connector: PlaceDBConnector,
+    ):
+        """Return only places matching requested IDs."""
+        places = db_connector.get_by_ids([1, 3])
+
+        assert {place.id for place in places} == {
+            1,
+            3,
+        }

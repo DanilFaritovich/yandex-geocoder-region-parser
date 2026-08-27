@@ -39,9 +39,10 @@ class YandexGeocoderConnector(GeocoderClient):
 
     def __init__(
         self,
+        settings: Optional[GeocoderSettings] = None,
         logger: Optional[logging.Logger] = None,
     ):        
-        self.settings = GeocoderSettings()
+        self.settings = settings or GeocoderSettings()
         self._logger = logger or logging.getLogger(__name__)
         self._session = requests.Session()
 
