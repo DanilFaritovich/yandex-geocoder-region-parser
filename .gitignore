@@ -94,6 +94,7 @@ secrets/
 credentials/
 sql/work/
 !sql/example/*
+!tests/**/*.sql
 
 # ========================
 # Utils
