@@ -57,7 +57,6 @@ def configure_success_response(
 
 @pytest.mark.integration
 class TestYandexGeocoderQueryConnector:
-
     def test_get_districts_by_query_returns_response(
         self,
         geocoder_connector: YandexGeocoderConnector,
@@ -73,12 +72,7 @@ class TestYandexGeocoderQueryConnector:
 
         assert isinstance(response, GeocoderApiResponse)
 
-        members = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member
-        )
+        members = response.response.geo_object_collection.feature_member
 
         assert len(members) == 1
 
@@ -94,30 +88,18 @@ class TestYandexGeocoderQueryConnector:
             query="Dubai",
         )
 
-        geo_object = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member[0]
-            .geo_object
-        )
+        geo_object = response.response.geo_object_collection.feature_member[
+            0
+        ].geo_object
 
-        metadata = (
-            geo_object
-            .meta_data_property
-            .geocoder_metadata
-        )
+        metadata = geo_object.meta_data_property.geocoder_metadata
 
         assert metadata.kind == "house"
-        assert metadata.text == (
-            "ОАЭ, Дубай, бульвар Мухаммед Бин Рашид, дом 1"
-        )
+        assert metadata.text == ("ОАЭ, Дубай, бульвар Мухаммед Бин Рашид, дом 1")
         assert metadata.precision == "exact"
 
         assert metadata.address.country_code == "UAE"
-        assert metadata.address.formatted == (
-            "Дубай, бульвар Мухаммед Бин Рашид, 1"
-        )
+        assert metadata.address.formatted == ("Дубай, бульвар Мухаммед Бин Рашид, 1")
 
         assert geo_object.point.pos == "25.197300 55.274243"
 
@@ -143,7 +125,6 @@ class TestYandexGeocoderQueryConnector:
 
 @pytest.mark.integration
 class TestYandexGeocoderCoordsConnector:
-
     def test_get_districts_by_coords_returns_response(
         self,
         geocoder_connector: YandexGeocoderConnector,
@@ -160,12 +141,7 @@ class TestYandexGeocoderCoordsConnector:
 
         assert isinstance(response, GeocoderApiResponse)
 
-        members = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member
-        )
+        members = response.response.geo_object_collection.feature_member
 
         assert len(members) == 1
 
@@ -182,26 +158,16 @@ class TestYandexGeocoderCoordsConnector:
             latitude=25.2048,
         )
 
-        geo_object = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member[0]
-            .geo_object
-        )
+        geo_object = response.response.geo_object_collection.feature_member[
+            0
+        ].geo_object
 
-        metadata = (
-            geo_object
-            .meta_data_property
-            .geocoder_metadata
-        )
+        metadata = geo_object.meta_data_property.geocoder_metadata
 
         assert metadata.kind == "house"
         assert metadata.precision == "exact"
         assert metadata.address.country_code == "UAE"
-        assert metadata.address.formatted == (
-            "Дубай, бульвар Мухаммед Бин Рашид, 1"
-        )
+        assert metadata.address.formatted == ("Дубай, бульвар Мухаммед Бин Рашид, 1")
         assert geo_object.point.pos == "25.197300 55.274243"
 
     def test_get_districts_by_coords_sends_skip_parameter(
@@ -227,7 +193,6 @@ class TestYandexGeocoderCoordsConnector:
 
 @pytest.mark.integration
 class TestYandexGeocoderErrorHandling:
-
     def test_403_raises_auth_error_without_retry(
         self,
         httpserver: HTTPServer,

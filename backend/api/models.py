@@ -2,19 +2,13 @@
 Pydantic models for Yandex Geocoder API.
 Contains: API response models, settings, and business result models.
 """
-from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
-from pydantic import BaseModel, Field, ConfigDict
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ====================================================================== #
 # API Response Models (mirror Yandex Geocoder JSON schema)
 # ====================================================================== #
-
-from typing import Optional
-
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class Component(BaseModel):
@@ -22,24 +16,17 @@ class Component(BaseModel):
 
     kind: str = Field(
         description=(
-            "Component type: country, province, area, locality, "
-            "district, street, house"
+            "Component type: country, province, area, locality, district, street, house"
         )
     )
-    name: str = Field(
-        description="Component name"
-    )
+    name: str = Field(description="Component name")
 
 
 class Address(BaseModel):
     """Structured address of a geographic object."""
 
-    country_code: str = Field(
-        description="ISO 3166-1 country code"
-    )
-    formatted: str = Field(
-        description="Full formatted address"
-    )
+    country_code: str = Field(description="ISO 3166-1 country code")
+    formatted: str = Field(description="Full formatted address")
     components: list[Component] = Field(
         default_factory=list,
         alias="Components",
@@ -53,21 +40,10 @@ class Address(BaseModel):
 class GeocoderMetaData(BaseModel):
     """Metadata describing a geocoded object."""
 
-    kind: str = Field(
-        description="Type of geographic object"
-    )
-    text: str = Field(
-        default="",
-        description="Full address as text"
-    )
-    precision: str = Field(
-        default="",
-        description="Geocoding precision"
-    )
-    address: Address = Field(
-        alias="Address",
-        description="Structured address"
-    )
+    kind: str = Field(description="Type of geographic object")
+    text: str = Field(default="", description="Full address as text")
+    precision: str = Field(default="", description="Geocoding precision")
+    address: Address = Field(alias="Address", description="Structured address")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -77,9 +53,7 @@ class GeocoderMetaData(BaseModel):
 class Point(BaseModel):
     """Geographic coordinates."""
 
-    pos: str = Field(
-        description="Coordinates in 'longitude latitude' format"
-    )
+    pos: str = Field(description="Coordinates in 'longitude latitude' format")
 
 
 class GeoObjectMetaData(BaseModel):
@@ -179,11 +153,13 @@ class GeocoderApiResponse(BaseModel):
 # Configuration
 # ====================================================================== #
 
+
 class GeocoderSettings(BaseSettings):
     """
     Geocoder configuration.
     Loads from env vars with prefix YANDEX_GEOCODER_ or from .env file.
     """
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="YANDEX_GEOCODER_",
@@ -196,11 +172,15 @@ class GeocoderSettings(BaseSettings):
     timeout: int = Field(default=10, description="HTTP request timeout in seconds")
     lang: str = Field(default="ru_RU", description="Response language")
     retries: int = Field(default=1, description="Number of retry attempts")
-    retry_delay: float = Field(default=1.0, description="Delay between retries (seconds)")
+    retry_delay: float = Field(
+        default=1.0, description="Delay between retries (seconds)"
+    )
+
 
 # ====================================================================== #
 # Requests
 # ====================================================================== #
+
 
 class GeocodeRequest(BaseModel):
     """Base request for Yandex Geocoder API."""
@@ -209,7 +189,7 @@ class GeocodeRequest(BaseModel):
         default="ru_RU",
         description="Response language",
     )
-    kind: Optional[str] = Field(
+    kind: str | None = Field(
         default=None,
         description="Type of geographic object",
     )
@@ -230,7 +210,7 @@ class GeocodeRequest(BaseModel):
 
     def params(self, api_key: str) -> dict[str, str | int]:
         """Build Yandex Geocoder API query parameters."""
-        par = {
+        par: dict[str, str | int] = {
             "apikey": api_key,
             "lang": self.lang,
             "format": self.format,
@@ -243,36 +223,40 @@ class GeocodeRequest(BaseModel):
 
         return par
 
+
 # ====================================================================== #
 # Requests By Query
 # ====================================================================== #
+
 
 class GeocodeDistrictQueryRequest(GeocodeRequest):
     """Request for geocoding district information by query."""
 
     geocode: str = Field(
-            min_length=1,
-            description="Address or locality to geocode",
-        )
+        min_length=1,
+        description="Address or locality to geocode",
+    )
 
-    def params(self, api_key: str) -> Dict[str, str | int]:
+    def params(self, api_key: str) -> dict[str, str | int]:
         self.kind = "district"
         par = super().params(api_key)
 
         par["geocode"] = self.geocode
         return par
 
+
 # ====================================================================== #
 # Requests By Coords
 # ====================================================================== #
+
 
 class GeocodeDistrictCoordsRequest(GeocodeDistrictQueryRequest):
     """Request for geocoding district information by coords."""
 
     geocode: str = Field(
-            default="",
-            description="Coordinates in 'lon,lat' format",
-        )
+        default="",
+        description="Coordinates in 'lon,lat' format",
+    )
 
     @property
     def coords(self) -> str:

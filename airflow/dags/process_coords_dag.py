@@ -1,10 +1,10 @@
 import json
+from typing import Any, cast
+
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.sdk import Asset, AssetAlias, dag, task
 
 from backend.bootstrap import create_etl_service
-
-from airflow.sdk import AssetAlias, Asset, dag, task
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 
 POINTS_ASSET_ALIAS = AssetAlias("geocoding-points")
 REQUESTS_ASSET_ALIAS = AssetAlias("geocoding-requests")
@@ -15,13 +15,13 @@ REQUESTS_ASSET_ALIAS = AssetAlias("geocoding-requests")
     schedule=POINTS_ASSET_ALIAS,
     catchup=False,
 )
-def geocoding_requests():
+def geocoding_requests() -> None:
 
     @task(
         inlets=[POINTS_ASSET_ALIAS],
         multiple_outputs=True,
     )
-    def get_job_metadata(*, inlet_events):
+    def get_job_metadata(*, inlet_events: dict[str, list[Any]]) -> dict:
         event = inlet_events[POINTS_ASSET_ALIAS][-1]
 
         return {
@@ -29,27 +29,26 @@ def geocoding_requests():
             "place_id": event.extra["place_id"],
             "date": event.extra["date"],
             "points_uri": event.asset.uri,
-    }
+        }
 
-    @task(
-        inlets=[POINTS_ASSET_ALIAS]
-    )
-    def get_point_keys(*, inlet_events):
+    @task(inlets=[POINTS_ASSET_ALIAS])
+    def get_point_keys(*, inlet_events: dict[str, list[Any]]) -> list[str]:
         event = inlet_events[POINTS_ASSET_ALIAS][-1]
 
         points_uri = event.asset.uri
 
-        bucket_name, points_key = S3Hook.parse_s3_url(
-            points_uri
-        )
+        bucket_name, points_key = S3Hook.parse_s3_url(points_uri)
 
         hook = S3Hook(
             aws_conn_id="minio_s3",
         )
 
-        return hook.list_keys(
-            bucket_name=bucket_name,
-            prefix=points_key,
+        return cast(
+            list[str],
+            hook.list_keys(
+                bucket_name=bucket_name,
+                prefix=points_key,
+            ),
         )
 
     @task(
@@ -59,7 +58,7 @@ def geocoding_requests():
     def process_point(
         point_key: str,
         place_id: int,
-    ):
+    ) -> None:
         hook = S3Hook(
             aws_conn_id="minio_s3",
         )
@@ -84,10 +83,7 @@ def geocoding_requests():
             "/requests/",
         )
 
-        request_data = [
-            result.model_dump(mode="json")
-            for result in request
-        ]
+        request_data = [result.model_dump(mode="json") for result in request]
 
         hook.load_string(
             string_data=json.dumps(request_data),
@@ -96,25 +92,19 @@ def geocoding_requests():
             replace=True,
         )
 
-    @task(
-        inlets=[POINTS_ASSET_ALIAS],
-        outlets=[REQUESTS_ASSET_ALIAS]
-    )
+    @task(inlets=[POINTS_ASSET_ALIAS], outlets=[REQUESTS_ASSET_ALIAS])
     def finalize_requests(
         *,
-        inlet_events,
-        outlet_events,
-    ):
+        inlet_events: dict[str, list[Any]],
+        outlet_events: dict[str, Any],
+    ) -> None:
         event = inlet_events[POINTS_ASSET_ALIAS][-1]
 
         job_id = event.extra["job_id"]
         place_id = event.extra["place_id"]
         date = event.extra["date"]
 
-        requests_uri = (
-            f"s3://geocoding/"
-            f"jobs/{date}/{job_id}/requests/"
-        )
+        requests_uri = f"s3://geocoding/jobs/{date}/{job_id}/requests/"
 
         outlet_events[REQUESTS_ASSET_ALIAS].add(
             Asset(requests_uri),

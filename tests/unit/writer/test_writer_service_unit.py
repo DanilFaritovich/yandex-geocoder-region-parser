@@ -5,7 +5,6 @@ from backend.writer.service import CsvConnector
 
 
 class TestCsvConnector:
-
     def test_save_writes_results_to_csv(
         self,
         geocode_result,
@@ -65,10 +64,12 @@ class TestCsvConnector:
         file_path = tmp_path / "results.csv"
         connector = CsvConnector(file_path)
 
-        connector.save([
-            geocode_result,
-            second_result,
-        ])
+        connector.save(
+            [
+                geocode_result,
+                second_result,
+            ]
+        )
 
         with file_path.open(
             newline="",

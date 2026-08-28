@@ -11,9 +11,10 @@ Does NOT contain business logic.
 """
 
 import logging
-from pathlib import Path
 import time
-from typing import Any, Callable, Dict, List, LiteralString, Optional
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, cast
 
 from psycopg import DatabaseError, OperationalError, ProgrammingError, sql
 from psycopg.rows import dict_row
@@ -42,15 +43,15 @@ class PlaceDBConnector(PlaceRepository):
 
     def __init__(
         self,
-        settings: Optional[PlaceDBSettings] = None,
-        logger: Optional[logging.Logger] = None,
+        settings: PlaceDBSettings | None = None,
+        logger: logging.Logger | None = None,
     ):
         if settings is None:
             raise ValueError("'settings' is required")
 
         self.settings = settings
         self._logger = logger or logging.getLogger(__name__)
-        self._pool: Optional[ConnectionPool] = None
+        self._pool: ConnectionPool | None = None
 
         self._init_pool()
 
@@ -58,7 +59,7 @@ class PlaceDBConnector(PlaceRepository):
     # PlaceRepository interface
     # ------------------------------------------------------------------ #
 
-    def get_by_id(self, place_id: int) -> Optional[Place]:
+    def get_by_id(self, place_id: int) -> Place | None:
         """
         Fetch a single place by ID.
 
@@ -68,9 +69,9 @@ class PlaceDBConnector(PlaceRepository):
         rows = self.get_by_ids([place_id])
         if rows:
             return rows[0]
-        return 
+        return None
 
-    def get_by_ids(self, place_ids: List[int]) -> List[Place]:
+    def get_by_ids(self, place_ids: list[int]) -> list[Place]:
         """
         Fetch multiple places by IDs.
 
@@ -80,13 +81,9 @@ class PlaceDBConnector(PlaceRepository):
         if not place_ids:
             return []
 
-        placeholders = sql.SQL(", ").join(
-            sql.Placeholder() for _ in place_ids
-        )
+        placeholders = sql.SQL(", ").join(sql.Placeholder() for _ in place_ids)
 
-        query = sql.SQL(
-            self._get_sql("t_place.sql")
-        ).format(
+        query = sql.SQL(self._get_sql("t_place.sql")).format(
             placeholders,
         )
 
@@ -95,10 +92,7 @@ class PlaceDBConnector(PlaceRepository):
             tuple(place_ids),
         )
 
-        places = [
-            Place.from_db_row(row)
-            for row in rows
-        ]
+        places = [Place.from_db_row(row) for row in rows]
 
         return places
 
@@ -129,8 +123,7 @@ class PlaceDBConnector(PlaceRepository):
     def _init_pool(self) -> None:
         """Initialize PostgreSQL connection pool."""
         self._logger.debug(
-            "Initializing PostgreSQL connection pool "
-            "(min_size=%d, max_size=%d)",
+            "Initializing PostgreSQL connection pool (min_size=%d, max_size=%d)",
             self.settings.pool_min_size,
             self.settings.pool_max_size,
         )
@@ -143,20 +136,14 @@ class PlaceDBConnector(PlaceRepository):
                 open=True,
             )
         except OperationalError as exc:
-            self._logger.exception(
-                "Failed to initialize PostgreSQL connection pool"
-            )
+            self._logger.exception("Failed to initialize PostgreSQL connection pool")
 
-            raise PlaceConnectionError(
-                "Cannot connect to database"
-            ) from exc
+            raise PlaceConnectionError("Cannot connect to database") from exc
 
     def _get_pool(self) -> ConnectionPool:
         """Return active connection pool."""
         if self._pool is None:
-            raise PlaceConnectionError(
-                "Connection pool is closed"
-            )
+            raise PlaceConnectionError("Connection pool is closed")
 
         return self._pool
 
@@ -203,9 +190,7 @@ class PlaceDBConnector(PlaceRepository):
                 elapsed_ms,
             )
 
-            raise PlaceConnectionError(
-                "Database connection error"
-            ) from exc
+            raise PlaceConnectionError("Database connection error") from exc
 
         except (ProgrammingError, DatabaseError) as exc:
             elapsed_ms = (time.perf_counter() - started_at) * 1000
@@ -215,45 +200,49 @@ class PlaceDBConnector(PlaceRepository):
                 elapsed_ms,
             )
 
-            raise PlaceQueryError(
-                "Database query error"
-            ) from exc
+            raise PlaceQueryError("Database query error") from exc
 
     def _fetch_one(
         self,
         query: sql.Composed,
         params: tuple[Any, ...],
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Execute query and return a single row."""
-        return self._execute(
-            query,
-            params,
-            fetcher=lambda cursor: cursor.fetchone(),
+        return cast(
+            dict[str, Any] | None,
+            self._execute(
+                query,
+                params,
+                fetcher=lambda cursor: cursor.fetchone(),
+            ),
         )
 
     def _fetch_all(
         self,
         query: sql.Composed,
         params: tuple[Any, ...],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Execute query and return all rows."""
-        return self._execute(
-            query,
-            params,
-            fetcher=lambda cursor: cursor.fetchall(),
+        return cast(
+            list[dict[str, Any]],
+            self._execute(
+                query,
+                params,
+                fetcher=lambda cursor: cursor.fetchall(),
+            ),
         )
 
     # ------------------------------------------------------------------ #
     # Context manager
     # ------------------------------------------------------------------ #
 
-    def __enter__(self) -> "PlaceDBConnector":
+    def __enter__(self) -> PlaceDBConnector:
         return self
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
         exc_tb: Any,
     ) -> None:
         self.close()

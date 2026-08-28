@@ -1,16 +1,15 @@
-from collections.abc import Sequence
 import logging
-from typing import Optional
+from collections.abc import Sequence
 
 from shapely import Polygon
 
 from backend.api.service import GeocodingService
 from backend.database.service import PlaceService
 from backend.etl.models import PointData
+from backend.geometry.polygon_service import PolygonService
 from backend.transformer.models import GeocodeResult
 from backend.transformer.service import GeocodingTransformerService
 from backend.writer.service import CsvConnector
-from backend.geometry.polygon_service import PolygonService
 
 
 class CoordsETLService:
@@ -25,7 +24,7 @@ class CoordsETLService:
         geocoding_service: GeocodingService,
         transformer: GeocodingTransformerService,
         writer: CsvConnector,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         self._geometry_service = geometry_service
         self._place_service = place_service
@@ -49,9 +48,7 @@ class CoordsETLService:
                 "Polygon not found for place: place_id=%d",
                 place_id,
             )
-            raise ValueError(
-                f"Polygon not found for place_id={place_id}"
-            )
+            raise ValueError(f"Polygon not found for place_id={place_id}")
 
         self._logger.info(
             "Polygon received: place_id=%d, geometry_type=%s",
@@ -129,8 +126,7 @@ class CoordsETLService:
         )
 
         self._logger.info(
-            "Point processed: place_id=%d, longitude=%f, "
-            "latitude=%f, results=%d",
+            "Point processed: place_id=%d, longitude=%f, latitude=%f, results=%d",
             place_id,
             longitude,
             latitude,

@@ -11,7 +11,6 @@ class TestPolygonService:
     def polygon_service(self) -> PolygonService:
         return PolygonService()
 
-
     @pytest.fixture
     def square_polygon(self) -> Polygon:
         return Polygon(

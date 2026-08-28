@@ -4,7 +4,6 @@ from backend.transformer.models import GeocodeResult
 
 
 class TestGeocodeResult:
-
     def test_creates_empty_result(self):
         result = GeocodeResult()
 

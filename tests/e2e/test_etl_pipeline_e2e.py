@@ -1,15 +1,14 @@
 import csv
 from pathlib import Path
 
-from backend.api.models import GeocoderApiResponse
-from backend.api.service import GeocodingService
 from backend.api.connector import YandexGeocoderConnector
+from backend.api.service import GeocodingService
 from backend.database.connector import PlaceDBConnector
 from backend.database.models import PlaceDBSettings
 from backend.database.service import PlaceService
+from backend.etl.service import GeocodingETLService
 from backend.transformer.service import GeocodingTransformerService
 from backend.writer.service import CsvConnector
-from backend.etl.service import GeocodingETLService
 
 
 def test_parse_all_districts_for_locality(tmp_path: Path):

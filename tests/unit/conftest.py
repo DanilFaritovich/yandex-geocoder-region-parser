@@ -12,10 +12,12 @@ def yandex_geocoder_response():
     with open("tests/fixtures/yandex_geocoder_response.json") as f:
         return json.load(f)
 
+
 @pytest.fixture
 def yandex_geocoder_response_model(yandex_geocoder_response):
     """Provides the YandexGeocoderResponse for creating test data."""
     return GeocoderApiResponse.model_validate(yandex_geocoder_response)
+
 
 @pytest.fixture
 def geocode_result(yandex_geocoder_response_model):

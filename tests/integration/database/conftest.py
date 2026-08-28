@@ -76,7 +76,7 @@ def db_settings(
 @pytest.fixture(scope="session")
 def db_connector(
     db_settings: PlaceDBSettings,
-) -> Generator[PlaceDBConnector, None, None]:
+) -> Generator[PlaceDBConnector]:
     """Create PlaceDBConnector connected to test PostgreSQL."""
 
     connector = PlaceDBConnector(db_settings)

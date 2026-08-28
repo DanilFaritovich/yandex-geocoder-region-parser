@@ -1,16 +1,12 @@
-from collections.abc import Sequence
 import logging
-from typing import Optional, Union
+from collections.abc import Sequence
 
-from shapely import Polygon
-
-from backend.api.models import GeocoderApiResponse
 from backend.api.service import GeocodingService
 from backend.database.service import PlaceService
+from backend.geometry.polygon_service import PolygonService
 from backend.transformer.models import GeocodeResult
 from backend.transformer.service import GeocodingTransformerService
 from backend.writer.service import CsvConnector
-from backend.geometry.polygon_service import PolygonService
 
 
 class GeocodingETLService:
@@ -21,11 +17,11 @@ class GeocodingETLService:
     def __init__(
         self,
         geometry_service: PolygonService,
-        place_service: PlaceService, 
+        place_service: PlaceService,
         geocoding_service: GeocodingService,
         transformer: GeocodingTransformerService,
         writer: CsvConnector,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         self._geometry_service = geometry_service
         self._place_service = place_service
@@ -36,17 +32,19 @@ class GeocodingETLService:
 
     def run_by_query(
         self,
-        localities: Sequence[Union[int, str]],
+        localities: Sequence[int | str],
     ) -> None:
         """Parse all districts for each locality by query."""
 
         for locality in localities:
             if isinstance(locality, int):
-                locality = self._place_service.get_place_by_id(locality).c_description
-                if locality is None:
+                _locality = self._place_service.get_place_by_id(locality).c_description
+                if _locality is None:
                     self._logger.error("No locality found: id_place=%d", locality)
                     raise ValueError
-            self._process_locality_by_query(locality)
+                self._process_locality_by_query(_locality)
+            else:
+                self._process_locality_by_query(locality)
 
     def _process_locality_by_query(self, locality: str) -> None:
         """Parse all districts for a single locality by query."""
