@@ -121,7 +121,7 @@ class GeocodingTransformerService:
             longitude = float(longitude_str)
             latitude = float(latitude_str)
 
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             # Invalid coordinates should not prevent transformation
             # of the remaining address data.
             pass
