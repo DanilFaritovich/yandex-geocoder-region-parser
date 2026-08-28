@@ -14,7 +14,7 @@ import logging
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Self, cast
 
 from psycopg import DatabaseError, OperationalError, ProgrammingError, sql
 from psycopg.rows import dict_row
@@ -236,7 +236,7 @@ class PlaceDBConnector(PlaceRepository):
     # Context manager
     # ------------------------------------------------------------------ #
 
-    def __enter__(self) -> PlaceDBConnector:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
