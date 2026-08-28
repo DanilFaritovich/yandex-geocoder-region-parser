@@ -6,7 +6,8 @@ NOT on concrete database connector.
 """
 
 import logging
-from typing import Dict, List, Optional
+from types import TracebackType
+from typing import Self
 
 from backend.database.exceptions import (
     PlaceNotFoundError,
@@ -36,7 +37,7 @@ class PlaceService:
     def __init__(
         self,
         repository: PlaceRepository,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """
         Args:
@@ -74,9 +75,7 @@ class PlaceService:
                 place_id,
             )
 
-            raise PlaceNotFoundError(
-                f"Place with id={place_id} not found"
-            )
+            raise PlaceNotFoundError(f"Place with id={place_id} not found")
 
         self._logger.debug(
             "Place loaded: place_id=%d",
@@ -87,8 +86,8 @@ class PlaceService:
 
     def get_places_by_ids(
         self,
-        place_ids: List[int],
-    ) -> Dict[int, Place]:
+        place_ids: list[int],
+    ) -> dict[int, Place]:
         """
         Get multiple places by IDs.
 
@@ -101,9 +100,7 @@ class PlaceService:
         self._validate_batch_ids(place_ids)
 
         if not place_ids:
-            self._logger.debug(
-                "Empty place ID batch requested"
-            )
+            self._logger.debug("Empty place ID batch requested")
             return {}
 
         self._logger.debug(
@@ -111,12 +108,9 @@ class PlaceService:
             len(place_ids),
         )
 
-        places = self._repository.get_by_ids(place_ids)
+        list_places = self._repository.get_by_ids(place_ids)
 
-        places = {
-            place.id: place
-            for place in places
-        }
+        places = {place.id: place for place in list_places}
 
         missing = set(place_ids) - set(places.keys())
 
@@ -158,13 +152,11 @@ class PlaceService:
             )
 
         if place_id <= 0:
-            raise PlaceValidationError(
-                f"place_id must be positive, got {place_id}"
-            )
+            raise PlaceValidationError(f"place_id must be positive, got {place_id}")
 
     def _validate_batch_ids(
         self,
-        place_ids: List[int],
+        place_ids: list[int],
     ) -> None:
         """
         Validate a batch of place IDs.
@@ -173,14 +165,10 @@ class PlaceService:
             PlaceValidationError: If batch is invalid.
         """
         if not isinstance(place_ids, list):
-            raise PlaceValidationError(
-                "place_ids must be a list"
-            )
+            raise PlaceValidationError("place_ids must be a list")
 
         if len(place_ids) > self.MAX_BATCH_SIZE:
-            raise PlaceValidationError(
-                f"Batch too large: {len(place_ids)}"
-            )
+            raise PlaceValidationError(f"Batch too large: {len(place_ids)}")
 
         for place_id in place_ids:
             self._validate_place_id(place_id)
@@ -189,13 +177,13 @@ class PlaceService:
     # Context manager
     # ------------------------------------------------------------------ #
 
-    def __enter__(self) -> "PlaceService":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
         self,
-        exc_type,
-        exc_val,
-        exc_tb,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self._repository.close()

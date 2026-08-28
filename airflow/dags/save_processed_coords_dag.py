@@ -1,11 +1,11 @@
 import json
+from typing import Any
+
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.sdk import AssetAlias, dag, task
 
 from backend.bootstrap import create_etl_service
-
-from airflow.sdk import AssetAlias, dag, task
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from backend.transformer.models import GeocodeResult
-
 
 REQUESTS_ASSET_ALIAS = AssetAlias("geocoding-requests")
 
@@ -15,12 +15,10 @@ REQUESTS_ASSET_ALIAS = AssetAlias("geocoding-requests")
     schedule=REQUESTS_ASSET_ALIAS,
     catchup=False,
 )
-def geocoding_save():
+def geocoding_save() -> None:
 
-    @task(
-        inlets=[REQUESTS_ASSET_ALIAS]
-    )
-    def save_to_csv(*, inlet_events):
+    @task(inlets=[REQUESTS_ASSET_ALIAS])
+    def save_to_csv(*, inlet_events: dict[str, list[Any]]) -> None:
         event = inlet_events[REQUESTS_ASSET_ALIAS][-1]
 
         job_id = event.extra["job_id"]
@@ -28,9 +26,7 @@ def geocoding_save():
 
         requests_uri = event.asset.uri
 
-        bucket_name, requests_prefix = S3Hook.parse_s3_url(
-            requests_uri
-        )
+        bucket_name, requests_prefix = S3Hook.parse_s3_url(requests_uri)
 
         hook = S3Hook(
             aws_conn_id="minio_s3",
@@ -42,9 +38,7 @@ def geocoding_save():
         )
 
         if not request_keys:
-            raise ValueError(
-                f"No requests found in {requests_uri}"
-            )
+            raise ValueError(f"No requests found in {requests_uri}")
 
         service = create_etl_service()
 
@@ -57,16 +51,12 @@ def geocoding_save():
             requests_data = json.loads(request_json)
 
             requests = [
-                GeocodeResult.model_validate(result)
-                for result in requests_data
+                GeocodeResult.model_validate(result) for result in requests_data
             ]
 
             service.save(requests)
 
-        result_key = (
-            f"jobs/{date}/{job_id}/"
-            f"result/districts.csv"
-        )
+        result_key = f"jobs/{date}/{job_id}/result/districts.csv"
 
         hook.load_file(
             filename="/opt/airflow/data/districts.csv",
@@ -74,7 +64,6 @@ def geocoding_save():
             key=result_key,
             replace=True,
         )
-
 
     save_to_csv()
 

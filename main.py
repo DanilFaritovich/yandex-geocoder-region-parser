@@ -11,18 +11,15 @@ from backend.geometry.polygon_service import PolygonService
 from backend.transformer.service import GeocodingTransformerService
 from backend.writer.service import CsvConnector
 
+
 def setup_logging() -> None:
     """Configure application logging."""
     logging.basicConfig(
         level=logging.DEBUG,
-        format=(
-            "%(asctime)s | "
-            "%(levelname)s | "
-            "%(name)s | "
-            "%(message)s"
-        ),
+        format=("%(asctime)s | %(levelname)s | %(name)s | %(message)s"),
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
 
 def main() -> None:
     setup_logging()
@@ -35,7 +32,7 @@ def main() -> None:
         ) as place_repository,
     ):
         geometry_service = PolygonService()
-        
+
         geocoding_service = GeocodingService(
             geocoder_connector,
         )

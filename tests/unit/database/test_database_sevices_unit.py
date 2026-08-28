@@ -4,7 +4,6 @@ from backend.database.exceptions import (
     PlaceNotFoundError,
     PlaceValidationError,
 )
-from backend.database.service import PlaceService
 from tests.unit.database.conftest import PlaceFactory
 
 
@@ -155,9 +154,7 @@ class TestPlaceServiceGetPlacesByIds:
         place_service,
         place_repository,
     ):
-        place_ids = list(
-            range(1, place_service.MAX_BATCH_SIZE + 2)
-        )
+        place_ids = list(range(1, place_service.MAX_BATCH_SIZE + 2))
 
         with pytest.raises(
             PlaceValidationError,

@@ -9,14 +9,11 @@ from backend.api.models import (
 
 
 class TestGeocoderApiResponse:
-
     def test_parses_real_yandex_response(
         self,
         yandex_geocoder_response,
     ):
-        response = GeocoderApiResponse.model_validate(
-            yandex_geocoder_response
-        )
+        response = GeocoderApiResponse.model_validate(yandex_geocoder_response)
 
         collection = response.response.geo_object_collection
 
@@ -26,16 +23,10 @@ class TestGeocoderApiResponse:
         self,
         yandex_geocoder_response,
     ):
-        response = GeocoderApiResponse.model_validate(
-            yandex_geocoder_response
-        )
+        response = GeocoderApiResponse.model_validate(yandex_geocoder_response)
 
         metadata = (
-            response
-            .response
-            .geo_object_collection
-            .meta_data_property
-            .geocoder_response
+            response.response.geo_object_collection.meta_data_property.geocoder_response
         )
 
         assert metadata.request
@@ -46,45 +37,25 @@ class TestGeocoderApiResponse:
         self,
         yandex_geocoder_response,
     ):
-        response = GeocoderApiResponse.model_validate(
-            yandex_geocoder_response
-        )
+        response = GeocoderApiResponse.model_validate(yandex_geocoder_response)
 
-        geo_object = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member[0]
-            .geo_object
-        )
+        geo_object = response.response.geo_object_collection.feature_member[
+            0
+        ].geo_object
 
         assert geo_object.point.pos
 
-        assert (
-            geo_object
-            .meta_data_property
-            .geocoder_metadata
-            .kind
-        )
+        assert geo_object.meta_data_property.geocoder_metadata.kind
 
     def test_parses_address_components(
         self,
         yandex_geocoder_response,
     ):
-        response = GeocoderApiResponse.model_validate(
-            yandex_geocoder_response
-        )
+        response = GeocoderApiResponse.model_validate(yandex_geocoder_response)
 
-        address = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member[0]
-            .geo_object
-            .meta_data_property
-            .geocoder_metadata
-            .address
-        )
+        address = response.response.geo_object_collection.feature_member[
+            0
+        ].geo_object.meta_data_property.geocoder_metadata.address
 
         assert address.country_code
         assert address.formatted
@@ -100,7 +71,6 @@ class TestGeocoderApiResponse:
 
 
 class TestGeocodeDistrictQueryRequest:
-
     def test_builds_params(self):
         request = GeocodeDistrictQueryRequest(
             geocode="Москва, Тверской район",
@@ -143,7 +113,6 @@ class TestGeocodeDistrictQueryRequest:
 
 
 class TestGeocodeDistrictCoordsRequest:
-
     def test_coords_setter_formats_coordinates(self):
         request = GeocodeDistrictCoordsRequest()
 
@@ -181,6 +150,4 @@ class TestGeocodeDistrictCoordsRequest:
 
         longitude, latitude = coords
 
-        assert request.coords == (
-            f"{longitude},{latitude}"
-        )
+        assert request.coords == (f"{longitude},{latitude}")

@@ -2,8 +2,8 @@
 Repository abstraction for Place data access.
 Defines the contract that business logic depends on.
 """
+
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
 
 from backend.database.models import Place
 
@@ -11,7 +11,7 @@ from backend.database.models import Place
 class PlaceRepository(ABC):
     """
     Abstract interface for place data access.
-    
+
     Business logic (PlaceService) depends on this abstraction,
     NOT on the concrete connector. This allows:
     - Swapping implementations (PostgreSQL -> MongoDB -> API)
@@ -20,12 +20,12 @@ class PlaceRepository(ABC):
     """
 
     @abstractmethod
-    def get_by_id(self, place_id: int) -> Optional[Place]:
+    def get_by_id(self, place_id: int) -> Place | None:
         """Fetch single place by ID. Returns None if not found."""
         ...
 
     @abstractmethod
-    def get_by_ids(self, place_ids: List[int]) -> List[Place]:
+    def get_by_ids(self, place_ids: list[int]) -> list[Place]:
         """Fetch multiple places by IDs. Returns {id: Place}."""
         ...
 

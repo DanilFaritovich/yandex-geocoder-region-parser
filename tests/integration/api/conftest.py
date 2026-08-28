@@ -13,16 +13,14 @@ from backend.api.models import GeocoderSettings
 def yandex_response() -> dict:
     path = Path("tests/fixtures/yandex_geocoder_response.json")
 
-    return json.loads(
-        path.read_text(encoding="utf-8")
-    )
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @pytest.fixture
 def geocoder_connector(
     httpserver: HTTPServer,
     monkeypatch: pytest.MonkeyPatch,
-) -> Generator[YandexGeocoderConnector, None, None]:
+) -> Generator[YandexGeocoderConnector]:
     settings = GeocoderSettings(
         base_url=httpserver.url_for("/1.x/"),
         api_key="test-api-key",

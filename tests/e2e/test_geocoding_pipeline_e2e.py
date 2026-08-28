@@ -8,7 +8,6 @@ from backend.writer.service import CsvConnector
 
 
 class TestGeocodingE2E:
-
     def test_parse_district_and_save_to_csv(
         self,
         tmp_path: Path,

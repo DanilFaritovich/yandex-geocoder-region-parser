@@ -10,35 +10,37 @@ from shapely.geometry import Polygon
 
 from backend.database.models import District, Place
 
-
 # ====================================================================== #
 # District Tests
 # ====================================================================== #
 
 
 class TestDistrictFromDbRow:
-
     def test_creates_district_from_complete_row(self):
         row = {
             "name": "Tula",
-            "polygon": Polygon([
-                (0, 0),
-                (1, 0),
-                (1, 1),
-                (0, 1),
-            ]),
+            "polygon": Polygon(
+                [
+                    (0, 0),
+                    (1, 0),
+                    (1, 1),
+                    (0, 1),
+                ]
+            ),
         }
 
         district = District.from_db_row(row)
 
         assert district.name == "Tula"
         assert district.polygon.equals(
-            Polygon([
-                (0, 0),
-                (1, 0),
-                (1, 1),
-                (0, 1),
-            ])
+            Polygon(
+                [
+                    (0, 0),
+                    (1, 0),
+                    (1, 1),
+                    (0, 1),
+                ]
+            )
         )
 
     def test_creates_district_from_partial_row(self):
@@ -83,15 +85,12 @@ class TestDistrictFromDbRow:
 
 
 class TestPlaceFromDbRow:
-
     def test_creates_place_from_complete_row(self):
         row = {
             "id": 42,
             "c_description": "Tula",
             "c_language_code": "ru",
-            "c_polygon_text": (
-                "POLYGON ((0 0, 1 0, 1 1, 0 0))"
-            ),
+            "c_polygon_text": ("POLYGON ((0 0, 1 0, 1 1, 0 0))"),
         }
 
         place = Place.from_db_row(row)
@@ -102,12 +101,14 @@ class TestPlaceFromDbRow:
 
         assert isinstance(place.c_polygon, Polygon)
         assert place.c_polygon.equals(
-            Polygon([
-                (0, 0),
-                (1, 0),
-                (1, 1),
-                (0, 0),
-            ])
+            Polygon(
+                [
+                    (0, 0),
+                    (1, 0),
+                    (1, 1),
+                    (0, 0),
+                ]
+            )
         )
 
         assert place.districts == []
@@ -183,7 +184,6 @@ class TestPlaceFromDbRow:
 
 
 class TestPlaceValidation:
-
     def test_requires_id(self):
         with pytest.raises(ValidationError):
             Place(c_description="Tula")
@@ -204,18 +204,19 @@ class TestPlaceValidation:
 
 
 class TestPlaceAddDistrict:
-
     def test_adds_district(self, place_factory, district_factory):
         place = place_factory(id=1)
 
         district = district_factory(
             name="Tula district",
-            polygon=Polygon([
-                (0, 0),
-                (1, 0),
-                (1, 1),
-                (0, 1),
-            ]),
+            polygon=Polygon(
+                [
+                    (0, 0),
+                    (1, 0),
+                    (1, 1),
+                    (0, 1),
+                ]
+            ),
         )
 
         place.add_district(district)
@@ -260,17 +261,13 @@ class TestPlaceAddDistrict:
     ):
         place = place_factory(id=1)
 
-        place.add_district(
-            district_factory(name="Tula district")
-        )
+        place.add_district(district_factory(name="Tula district"))
 
         with pytest.raises(
             ValueError,
             match="District with name Tula district already exists",
         ):
-            place.add_district(
-                district_factory(name="Tula district")
-            )
+            place.add_district(district_factory(name="Tula district"))
 
     def test_allows_multiple_unnamed_districts(
         self,

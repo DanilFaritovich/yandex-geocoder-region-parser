@@ -1,8 +1,7 @@
-from collections.abc import Sequence
 import logging
-from typing import Optional
+from collections.abc import Sequence
 
-from backend.api.models import GeoObject, GeocoderApiResponse
+from backend.api.models import GeocoderApiResponse, GeoObject
 from backend.transformer.models import GeocodeResult
 
 
@@ -14,7 +13,7 @@ class GeocodingTransformerService:
 
     def __init__(
         self,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         """Initialize transformer service with an optional logger."""
 
@@ -32,12 +31,7 @@ class GeocodingTransformerService:
         business models that can be used by downstream ETL steps.
         """
 
-        members = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member
-        )
+        members = response.response.geo_object_collection.feature_member
 
         self._logger.debug(
             "Transforming geocoder response: query=%r, objects=%d",
@@ -110,21 +104,16 @@ class GeocodingTransformerService:
         from the Yandex-specific response structure.
         """
 
-        metadata = (
-            geo_object
-            .meta_data_property
-            .geocoder_metadata
-        )
+        metadata = geo_object.meta_data_property.geocoder_metadata
 
         address = metadata.address
 
         components = {
-            component.kind: component.name
-            for component in address.components
+            component.kind: component.name for component in address.components
         }
 
-        latitude: Optional[float] = None
-        longitude: Optional[float] = None
+        latitude: float | None = None
+        longitude: float | None = None
 
         try:
             longitude_str, latitude_str = geo_object.point.pos.split()
@@ -132,7 +121,7 @@ class GeocodingTransformerService:
             longitude = float(longitude_str)
             latitude = float(latitude_str)
 
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             # Invalid coordinates should not prevent transformation
             # of the remaining address data.
             pass

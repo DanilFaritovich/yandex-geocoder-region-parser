@@ -51,16 +51,17 @@ def service(
 
 @pytest.fixture
 def polygon():
-    return Polygon([
-        (44.50, 40.15),
-        (44.51, 40.15),
-        (44.51, 40.16),
-        (44.50, 40.16),
-    ])
+    return Polygon(
+        [
+            (44.50, 40.15),
+            (44.51, 40.15),
+            (44.51, 40.16),
+            (44.50, 40.16),
+        ]
+    )
 
 
 class TestCoordsETLServiceGetPlacePolygon:
-
     def test_returns_place_polygon(
         self,
         service,
@@ -96,7 +97,6 @@ class TestCoordsETLServiceGetPlacePolygon:
 
 
 class TestCoordsETLServiceGeneratePoints:
-
     def test_generates_point_data(
         self,
         service,
@@ -150,7 +150,6 @@ class TestCoordsETLServiceGeneratePoints:
 
 
 class TestCoordsETLServiceProcessPoint:
-
     def test_processes_point(
         self,
         service,
@@ -205,7 +204,6 @@ class TestCoordsETLServiceProcessPoint:
 
 
 class TestCoordsETLServiceSave:
-
     def test_saves_results(
         self,
         service,

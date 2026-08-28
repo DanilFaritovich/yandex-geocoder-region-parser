@@ -1,5 +1,6 @@
 import logging
-from typing import Optional
+from types import TracebackType
+from typing import Self
 
 from backend.api.client import GeocoderClient
 from backend.api.models import GeocoderApiResponse
@@ -16,7 +17,7 @@ class GeocodingService:
     def __init__(
         self,
         client: GeocoderClient,
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
     ):
         self._client = client
         self._logger = logger or logging.getLogger(__name__)
@@ -69,9 +70,7 @@ class GeocodingService:
     # ================================================================
 
     def get_district_by_coords(
-        self,
-        longitude: float,
-        latitude: float
+        self, longitude: float, latitude: float
     ) -> GeocoderApiResponse:
         """Get geocoding data for a coords."""
 
@@ -118,8 +117,13 @@ class GeocodingService:
 
         self._client.close()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()

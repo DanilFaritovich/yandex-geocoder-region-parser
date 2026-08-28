@@ -1,18 +1,15 @@
-import json
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
-from shapely import Polygon
 import shapely
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.sdk import Asset, AssetAlias, Param, dag, task
 
 from backend.bootstrap import create_etl_service
-from backend.etl.models import PointData
-
-from airflow.sdk import AssetAlias, Asset, Param, dag, task
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
-from datetime import datetime, timezone
 
 POLYGONS_ASSET_ALIAS = AssetAlias("geocoding-polygons")
+
 
 @dag(
     dag_id="geocoding_polygon",
@@ -33,24 +30,24 @@ POLYGONS_ASSET_ALIAS = AssetAlias("geocoding-polygons")
         ),
     },
 )
-def prepare_polygon():
-    
+def prepare_polygon() -> None:
+
     @task(outlets=[POLYGONS_ASSET_ALIAS])
-    def generate_polygon(place_id: int, distance_meters: int, *, outlet_events) -> None:
+    def generate_polygon(
+        place_id: int, distance_meters: int, *, outlet_events: dict[str, Any]
+    ) -> None:
         service = create_etl_service()
 
         polygon = service.get_place_polygon(place_id=place_id)
 
         job_id = str(uuid4())
-        job_date = datetime.now(timezone.utc).date().isoformat()
+        job_date = datetime.now(UTC).date().isoformat()
 
         hook = S3Hook(
             aws_conn_id="minio_s3",
         )
 
-        s3_key = (
-            f"jobs/{job_date}/{job_id}/polygon.json"
-        )
+        s3_key = f"jobs/{job_date}/{job_id}/polygon.json"
 
         polygon_json = shapely.to_geojson(polygon)
 
@@ -77,5 +74,6 @@ def prepare_polygon():
         place_id="{{ params.place_id }}",
         distance_meters="{{ params.distance_meters }}",
     )
+
 
 prepare_polygon()

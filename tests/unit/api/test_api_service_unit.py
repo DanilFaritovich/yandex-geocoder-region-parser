@@ -8,7 +8,6 @@ from backend.api.service import GeocodingService
 
 
 class TestGeocodingService:
-
     @pytest.fixture
     def client(self):
         return Mock(spec=GeocoderClient)
@@ -62,9 +61,7 @@ class TestGeocodingService:
         service,
         client,
     ):
-        client.get_districts_by_query.side_effect = RuntimeError(
-            "API error"
-        )
+        client.get_districts_by_query.side_effect = RuntimeError("API error")
 
         with pytest.raises(RuntimeError, match="API error"):
             service.get_districts_by_locality("Dubai")
@@ -120,9 +117,7 @@ class TestGeocodingService:
         service,
         client,
     ):
-        client.get_districts_by_coords.side_effect = RuntimeError(
-            "API error"
-        )
+        client.get_districts_by_coords.side_effect = RuntimeError("API error")
 
         with pytest.raises(RuntimeError, match="API error"):
             service.get_districts_by_coords(

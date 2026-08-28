@@ -1,16 +1,11 @@
 import json
-from uuid import uuid4
+from typing import Any
 
-from shapely import Polygon
 import shapely
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.sdk import Asset, AssetAlias, dag, task
 
 from backend.bootstrap import create_etl_service
-from backend.etl.models import PointData
-
-from airflow.sdk import AssetAlias, Asset, Param, dag, task
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
-from datetime import datetime, timezone
 
 POLYGONS_ASSET_ALIAS = AssetAlias("geocoding-polygons")
 POINTS_ASSET_ALIAS = AssetAlias("geocoding-points")
@@ -21,13 +16,15 @@ POINTS_ASSET_ALIAS = AssetAlias("geocoding-points")
     schedule=POLYGONS_ASSET_ALIAS,
     catchup=False,
 )
-def prepare_points():
+def prepare_points() -> None:
 
     @task(
         inlets=[POLYGONS_ASSET_ALIAS],
         outlets=[POINTS_ASSET_ALIAS],
     )
-    def generate_points(*, inlet_events, outlet_events):
+    def generate_points(
+        *, inlet_events: dict[str, list[Any]], outlet_events: dict[str, Any]
+    ) -> None:
 
         events = inlet_events[POLYGONS_ASSET_ALIAS]
 
@@ -39,9 +36,7 @@ def prepare_points():
         distance_meters = event.extra["distance_meters"]
 
         polygon_uri = event.asset.uri
-        bucket_name, polygon_key = S3Hook.parse_s3_url(
-            polygon_uri
-        )
+        bucket_name, polygon_key = S3Hook.parse_s3_url(polygon_uri)
 
         hook = S3Hook(
             aws_conn_id="minio_s3",
@@ -63,9 +58,7 @@ def prepare_points():
         )
 
         for num, point in enumerate(points):
-            point_key = (
-                f"jobs/{date}/{job_id}/points/{num:06d}.json"
-            )
+            point_key = f"jobs/{date}/{job_id}/points/{num:06d}.json"
 
             hook.load_string(
                 string_data=json.dumps(point),

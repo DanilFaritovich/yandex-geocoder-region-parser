@@ -83,19 +83,10 @@ class TestGeocodingTransformerService:
         response = yandex_geocoder_response_model.model_copy(deep=True)
 
         for member in response.response.geo_object_collection.feature_member:
-            components = (
-                member
-                .geo_object
-                .meta_data_property
-                .geocoder_metadata
-                .address
-                .components
-            )
+            components = member.geo_object.meta_data_property.geocoder_metadata.address.components
 
             components[:] = [
-                component
-                for component in components
-                if component.kind != "district"
+                component for component in components if component.kind != "district"
             ]
 
         result = service.transform_districts(
@@ -145,12 +136,7 @@ class TestGeocodingTransformerService:
         first_district = next(
             component.name
             for component in (
-                first
-                .geo_object
-                .meta_data_property
-                .geocoder_metadata
-                .address
-                .components
+                first.geo_object.meta_data_property.geocoder_metadata.address.components
             )
             if component.kind == "district"
         )
@@ -170,13 +156,9 @@ class TestGeocodingTransformerService:
     ):
         response = yandex_geocoder_response_model.model_copy(deep=True)
 
-        geo_object = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member[0]
-            .geo_object
-        )
+        geo_object = response.response.geo_object_collection.feature_member[
+            0
+        ].geo_object
 
         geo_object.point.pos = "invalid coordinates"
 
@@ -196,13 +178,9 @@ class TestGeocodingTransformerService:
     ):
         response = yandex_geocoder_response_model.model_copy(deep=True)
 
-        geo_object = (
-            response
-            .response
-            .geo_object_collection
-            .feature_member[0]
-            .geo_object
-        )
+        geo_object = response.response.geo_object_collection.feature_member[
+            0
+        ].geo_object
 
         geo_object.point.pos = ""
 
@@ -228,10 +206,7 @@ class TestGeocodingTransformerService:
         )
 
         assert result
-        assert all(
-            isinstance(item, GeocodeResult)
-            for item in result
-        )
+        assert all(isinstance(item, GeocodeResult) for item in result)
 
     def test_transform_districts_by_list_returns_empty_for_empty_input(
         self,

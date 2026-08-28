@@ -2,24 +2,23 @@
 Pydantic models for PostgreSQL Place module.
 Contains: DB settings and Place, District entity models.
 """
-from typing import List, Optional, Dict, Any
-import os
+
+from typing import Any, Self
+
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from shapely import wkt
 from shapely.geometry import Polygon
 
-from pydantic import BaseModel, Field, ConfigDict
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ====================================================================== #
 # Env Settings
 # ====================================================================== #
 class EnvSettings(BaseSettings):
     """Environment settings."""
+
     model_config = SettingsConfigDict(
-        env_file=".env", 
-        env_prefix="ENV_", 
-        env_file_encoding="utf-8", 
-        extra="ignore"
+        env_file=".env", env_prefix="ENV_", env_file_encoding="utf-8", extra="ignore"
     )
 
     path: str = Field(default=".env", description="Path to .env file")
@@ -30,12 +29,12 @@ class EnvSettings(BaseSettings):
             return (".env",)
         else:
             return (".env", self.path)
-    
 
 
 # ====================================================================== #
 # Database Settings
 # ====================================================================== #
+
 
 class PlaceDBSettings(BaseSettings):
     """
@@ -49,7 +48,7 @@ class PlaceDBSettings(BaseSettings):
         PLACE_DB_USER=myuser
         PLACE_DB_PASSWORD=secret
     """
-    
+
     model_config = SettingsConfigDict(
         env_file=EnvSettings().env_files,
         env_prefix="DB_",
@@ -89,7 +88,7 @@ class PlaceDBSettings(BaseSettings):
         )
 
     @property
-    def conn_kwargs(self) -> Dict[str, Any]:
+    def conn_kwargs(self) -> dict[str, Any]:
         """Build psycopg connection kwargs."""
         return {
             "host": self.host,
@@ -100,19 +99,22 @@ class PlaceDBSettings(BaseSettings):
             "connect_timeout": self.connect_timeout,
         }
 
+
 # ====================================================================== #
 # District Entity Model
 # ====================================================================== #
 
+
 class District(BaseModel):
     """District entity — administrative division received from API."""
+
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
-    name: Optional[str] = Field(default=None, description="District name")
-    polygon: Optional[Polygon] = Field(default=None, description="District polygon")
+    name: str | None = Field(default=None, description="District name")
+    polygon: Polygon | None = Field(default=None, description="District polygon")
 
     @classmethod
-    def from_db_row(cls, row: Dict[str, Any]) -> "District":
+    def from_db_row(cls, row: dict[str, Any]) -> Self:
         """
         Build District from API response.
         """
@@ -123,33 +125,38 @@ class District(BaseModel):
         }
 
         # Map DB row keys to model fields
-        mapped_row: Dict[str, Any] = {}
+        mapped_row: dict[str, Any] = {}
         for db_col, model_field in column_map.items():
             if db_col in row:
                 mapped_row[model_field] = row[db_col]
 
         return cls.model_validate(mapped_row)
 
+
 # ====================================================================== #
 # Place Entity Model
 # ====================================================================== #
 
+
 class Place(BaseModel):
     """
     Place entity from t_place table.
-    
+
     NOTE: Adjust fields to match your actual t_place schema.
     """
+
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
     id: int = Field(description="Place ID (primary key)")
-    c_description: Optional[str] = Field(default=None, description="Place name")
-    c_language_code: Optional[str] = Field(default=None, description="Language code")
-    c_polygon: Optional[Polygon] = Field(default=None, description="Place polygon")
-    districts: List[District] = Field(default_factory=list, description='List of districts')
+    c_description: str | None = Field(default=None, description="Place name")
+    c_language_code: str | None = Field(default=None, description="Language code")
+    c_polygon: Polygon | None = Field(default=None, description="Place polygon")
+    districts: list[District] = Field(
+        default_factory=list, description="List of districts"
+    )
 
     @classmethod
-    def from_db_row(cls, row: Dict[str, Any]) -> "Place":
+    def from_db_row(cls, row: dict[str, Any]) -> Self:
         """Build Place from database row."""
 
         polygon = None
@@ -160,10 +167,7 @@ class Place(BaseModel):
             geometry = wkt.loads(polygon_text)
 
             if not isinstance(geometry, Polygon):
-                raise ValueError(
-                    "Expected Polygon geometry, "
-                    f"got {geometry.geom_type}"
-                )
+                raise ValueError(f"Expected Polygon geometry, got {geometry.geom_type}")
 
             polygon = geometry
 
@@ -176,13 +180,13 @@ class Place(BaseModel):
 
         return cls.model_validate(mapped_row)
 
-    def add_district(self, district: District):
+    def add_district(self, district: District) -> None:
         """
         Add a single district to this place.
-        
+
         Args:
             district: District object to add
-            
+
         Raises:
             ValueError: if district with same name already exists
         """
@@ -192,4 +196,4 @@ class Place(BaseModel):
         if district.name and any(d.name == district.name for d in self.districts):
             raise ValueError(f"District with name {district.name} already exists")
 
-        self.districts.append(district) 
+        self.districts.append(district)

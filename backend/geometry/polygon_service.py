@@ -1,5 +1,4 @@
 from math import ceil
-from typing import Iterable
 
 from pyproj import Transformer
 from shapely.geometry import Point, Polygon
@@ -31,9 +30,7 @@ class PolygonService:
             ValueError: If distance is not positive or polygon is empty.
         """
         if distance_meters <= 0:
-            raise ValueError(
-                "distance_meters must be greater than zero"
-            )
+            raise ValueError("distance_meters must be greater than zero")
 
         if polygon.is_empty:
             raise ValueError("Polygon must not be empty")
@@ -48,10 +45,7 @@ class PolygonService:
             distance_meters,
         )
 
-        return [
-            self._from_metric(point)
-            for point in points
-        ]
+        return [self._from_metric(point) for point in points]
 
     def _generate_points(
         self,

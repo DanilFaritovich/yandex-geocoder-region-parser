@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock
 
 from backend.bootstrap import create_etl_service

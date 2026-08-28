@@ -1,7 +1,9 @@
 import csv
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
+from types import TracebackType
+from typing import Self
 
 from backend.transformer.models import GeocodeResult
 
@@ -47,15 +49,10 @@ class CsvConnector:
                 self._file_path.parent,
             )
 
-        fieldnames = list(
-            GeocodeResult.model_fields.keys()
-        )
+        fieldnames = list(GeocodeResult.model_fields.keys())
 
         file_exists = self._file_path.exists()
-        file_empty = (
-            not file_exists
-            or self._file_path.stat().st_size == 0
-        )
+        file_empty = not file_exists or self._file_path.stat().st_size == 0
 
         with self._file_path.open(
             "a",
@@ -77,9 +74,7 @@ class CsvConnector:
                 )
 
             for result in results:
-                writer.writerow(
-                    result.model_dump()
-                )
+                writer.writerow(result.model_dump())
 
         self._logger.info(
             "Successfully saved %d geocoding results: path=%s",
@@ -87,13 +82,13 @@ class CsvConnector:
             self._file_path,
         )
 
-    def __enter__(self) -> "CsvConnector":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
         self,
-        exc_type,
-        exc_val,
-        exc_tb,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         pass
