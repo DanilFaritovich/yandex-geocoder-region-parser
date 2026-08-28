@@ -1,4 +1,5 @@
 import logging
+from types import TracebackType
 
 from backend.api.client import GeocoderClient
 from backend.api.models import GeocoderApiResponse
@@ -118,5 +119,10 @@ class GeocodingService:
     def __enter__(self) -> GeocodingService:
         return self
 
-    def __exit__(self) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()

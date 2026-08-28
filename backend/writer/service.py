@@ -2,6 +2,7 @@ import csv
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from types import TracebackType
 
 from backend.transformer.models import GeocodeResult
 
@@ -85,5 +86,8 @@ class CsvConnector:
 
     def __exit__(
         self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         pass

@@ -6,6 +6,7 @@ NOT on concrete database connector.
 """
 
 import logging
+from types import TracebackType
 
 from backend.database.exceptions import (
     PlaceNotFoundError,
@@ -180,5 +181,8 @@ class PlaceService:
 
     def __exit__(
         self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self._repository.close()
