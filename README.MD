@@ -21,8 +21,8 @@ The idea came from a practical need: the Yandex Geocoder has no way to return *a
 - A full ETL cycle: geometry → external API → transformation → storage
 - Orchestration via Airflow, with data passed between DAGs through **Assets** (event-driven, not just cron scheduling)
 - A clean, layered architecture with abstractions that let you swap the data source or geocoder without touching business logic
-- Test coverage: unit and integration tests (a real Postgres instance in Docker via `testcontainers`, a mocked HTTP server)
-- CI/CD with GitHub Actions
+- Testing: unit tests, integration tests and Airflow DAG validation
+- CI with GitHub Actions
 ---
  
 ## ⚙️ How it works
@@ -90,7 +90,7 @@ The project is covered by tests at every level, and every merge into `develop`/`
  
 - **Unit** — isolated tests of business logic with mocked dependencies
 - **Integration** — a real PostgreSQL instance in a Docker container (`testcontainers`), a mocked Yandex API (`pytest-httpserver`)
-- **Airflow tests** — separately verify the structure of the DAGs (tasks, inlets/outlets)
+- **Airflow DAG validation** — verifies DAG creation, task structure, dependencies, inlets and outlets inside the Airflow environment.
 - **Linting & formatting** — [Ruff](https://docs.astral.sh/ruff/) (`ruff check`, `ruff format --check`)
 - **Static typing** — [Mypy](https://mypy-lang.org/) over `backend` and `airflow/dags`
 Prerequisites: a running Docker daemon (the database integration tests spin up a real PostgreSQL container via `testcontainers`) and the project dependencies installed.

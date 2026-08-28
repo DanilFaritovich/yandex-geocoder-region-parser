@@ -3,7 +3,7 @@ Pydantic models for PostgreSQL Place module.
 Contains: DB settings and Place, District entity models.
 """
 
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -114,7 +114,7 @@ class District(BaseModel):
     polygon: Polygon | None = Field(default=None, description="District polygon")
 
     @classmethod
-    def from_db_row(cls, row: dict[str, Any]) -> District:
+    def from_db_row(cls, row: dict[str, Any]) -> Self:
         """
         Build District from API response.
         """
@@ -156,7 +156,7 @@ class Place(BaseModel):
     )
 
     @classmethod
-    def from_db_row(cls, row: dict[str, Any]) -> Place:
+    def from_db_row(cls, row: dict[str, Any]) -> Self:
         """Build Place from database row."""
 
         polygon = None

@@ -4,7 +4,7 @@ Yandex Geocoder API implementation of GeocoderClient.
 
 import logging
 import time
-from typing import Any, cast, Self
+from typing import Any, Self, cast
 
 import requests
 from pydantic import ValidationError
