@@ -3,6 +3,7 @@ import logging
 from collections.abc import Sequence
 from pathlib import Path
 from types import TracebackType
+from typing import Self
 
 from backend.transformer.models import GeocodeResult
 
@@ -81,7 +82,7 @@ class CsvConnector:
             self._file_path,
         )
 
-    def __enter__(self) -> CsvConnector:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
