@@ -7,6 +7,7 @@ NOT on concrete database connector.
 
 import logging
 from types import TracebackType
+from typing import Self
 
 from backend.database.exceptions import (
     PlaceNotFoundError,
@@ -176,7 +177,7 @@ class PlaceService:
     # Context manager
     # ------------------------------------------------------------------ #
 
-    def __enter__(self) -> PlaceService:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

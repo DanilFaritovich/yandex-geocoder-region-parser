@@ -4,7 +4,7 @@ Yandex Geocoder API implementation of GeocoderClient.
 
 import logging
 import time
-from typing import Any, cast
+from typing import Any, cast, Self
 
 import requests
 from pydantic import ValidationError
@@ -243,7 +243,7 @@ class YandexGeocoderConnector(GeocoderClient):
     # Context manager
     # ------------------------------------------------------------------ #
 
-    def __enter__(self) -> YandexGeocoderConnector:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self) -> None:

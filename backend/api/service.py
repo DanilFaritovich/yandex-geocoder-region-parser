@@ -1,5 +1,6 @@
 import logging
 from types import TracebackType
+from typing import Self
 
 from backend.api.client import GeocoderClient
 from backend.api.models import GeocoderApiResponse
@@ -116,7 +117,7 @@ class GeocodingService:
 
         self._client.close()
 
-    def __enter__(self) -> GeocodingService:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
