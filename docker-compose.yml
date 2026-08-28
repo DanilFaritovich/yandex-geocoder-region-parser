@@ -53,7 +53,7 @@ services:
 
     env_file:
       - .env
-      - ${ENV_PATH:?ENV_PATH is required}
+      - ${ENV_PATH:-.env}
 
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -110,8 +110,7 @@ services:
         condition: service_started
 
     env_file:
-      - .env
-      - ${ENV_PATH:?ENV_PATH is required}
+      - .env.example
 
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor

@@ -11,10 +11,15 @@ def test_create_etl_service_returns_configured_service(monkeypatch):
     place_service = Mock()
     transformer = Mock()
     writer = Mock()
+    geocoder_connector = Mock()
 
     monkeypatch.setattr(
         "backend.bootstrap.PolygonService",
         lambda: geometry_service,
+    )
+    monkeypatch.setattr(
+        "backend.bootstrap.YandexGeocoderConnector",
+        lambda: geocoder_connector,
     )
     monkeypatch.setattr(
         "backend.bootstrap.GeocodingService",
@@ -34,6 +39,8 @@ def test_create_etl_service_returns_configured_service(monkeypatch):
     )
 
     result = create_etl_service()
+
+    assert result is not None
 
     assert isinstance(result, CoordsETLService)
 
