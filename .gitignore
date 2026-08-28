@@ -64,6 +64,7 @@ alembic/versions/__pycache__/
 .DS_Store
 Thumbs.db
 Desktop.ini
+data/
 
 # ========================
 # Logs
@@ -91,6 +92,9 @@ logs/
 *.crt
 secrets/
 credentials/
+sql/work/
+!sql/example/*
+!tests/**/*.sql
 
 # ========================
 # Utils
