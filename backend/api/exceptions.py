@@ -10,7 +10,13 @@ class YandexGeocoderError(Exception):
 
 
 class YandexGeocoderAuthError(YandexGeocoderError):
-    """Raised when API key is invalid or rate limit exceeded."""
+    """Raised when API key is invalid."""
+
+    pass
+
+
+class YandexGeocoderLimitError(YandexGeocoderError):
+    """Raised when rate limit exceeded."""
 
     pass
 

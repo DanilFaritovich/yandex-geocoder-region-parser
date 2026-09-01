@@ -34,6 +34,7 @@ def prepare_points() -> None:
         place_id = event.extra["place_id"]
         date = event.extra["date"]
         distance_meters = event.extra["distance_meters"]
+        requests_limit = event.extra["requests_limit"]
 
         polygon_uri = event.asset.uri
         bucket_name, polygon_key = S3Hook.parse_s3_url(polygon_uri)
@@ -76,6 +77,7 @@ def prepare_points() -> None:
                 "job_id": job_id,
                 "place_id": place_id,
                 "date": date,
+                "requests_limit": requests_limit,
             },
         )
 
