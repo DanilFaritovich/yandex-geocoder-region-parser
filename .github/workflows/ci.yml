@@ -32,8 +32,8 @@ jobs:
 
       - name: Ruff
         run: |
-          ruff check .
           ruff format --check .
+          ruff check .
 
       - name: Mypy
         run: mypy backend airflow/dags
