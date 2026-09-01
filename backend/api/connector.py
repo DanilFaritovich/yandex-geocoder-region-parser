@@ -13,6 +13,7 @@ from backend.api.client import GeocoderClient
 from backend.api.exceptions import (
     YandexGeocoderAPIError,
     YandexGeocoderAuthError,
+    YandexGeocoderLimitError,
     YandexGeocoderParseError,
 )
 from backend.api.models import (
@@ -179,7 +180,18 @@ class YandexGeocoderConnector(GeocoderClient):
                         response.status_code,
                     )
 
-                    raise YandexGeocoderAuthError("Invalid API key or limit exceeded")
+                    raise YandexGeocoderAuthError("Invalid API key.")
+
+                if response.status_code == 429:
+                    self._logger.warning(
+                        "Yandex Geocoder rate limit exceeded: query=%r, status=%d",
+                        query,
+                        response.status_code,
+                    )
+
+                    raise YandexGeocoderLimitError(
+                        "Yandex Geocoder API rate limit exceeded"
+                    )
 
                 if response.status_code >= 400:
                     self._logger.warning(

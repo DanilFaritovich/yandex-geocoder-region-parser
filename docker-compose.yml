@@ -40,6 +40,22 @@ services:
 
     restart: unless-stopped
 
+
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_started
+
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do
+        sleep 1;
+      done;
+      mc mb --ignore-existing local/geocoding;
+      exit 0;
+      "
+
   airflow:
     build:
       context: .
@@ -50,6 +66,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+      airflow-init:
+        condition: service_completed_successfully
 
     env_file:
       - .env
@@ -85,7 +105,6 @@ services:
       - bash
       - -c
       - |
-        airflow db migrate &&
         airflow api-server &
 
         airflow scheduler &
@@ -94,6 +113,7 @@ services:
         wait
 
     restart: unless-stopped
+
 
   airflow-tests:
     profiles:
@@ -138,6 +158,46 @@ services:
     command:
       - airflow/tests/
       - -v
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: docker/airflow/Dockerfile
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    env_file:
+      - .env
+      - ${ENV_PATH:-.env}
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
+        postgresql+psycopg://airflow:airflow@postgres:5432/airflow
+
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+
+      PYTHONPATH: /opt/airflow
+
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./backend:/opt/airflow/backend
+
+    command:
+    - bash
+    - -c
+    - |
+      set -e
+
+      airflow db migrate
+
+      airflow pools get yandex_geocoder >/dev/null 2>&1 || \
+        airflow pools set yandex_geocoder 5 "Yandex Geocoder API"
 
 volumes:
   airflow_postgres:

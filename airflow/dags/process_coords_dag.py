@@ -1,5 +1,5 @@
 import json
-from typing import Any, cast
+from typing import Any
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.sdk import Asset, AssetAlias, dag, task
@@ -14,6 +14,7 @@ REQUESTS_ASSET_ALIAS = AssetAlias("geocoding-requests")
     dag_id="geocoding_requests",
     schedule=POINTS_ASSET_ALIAS,
     catchup=False,
+    fail_fast=True,
 )
 def geocoding_requests() -> None:
 
@@ -28,11 +29,14 @@ def geocoding_requests() -> None:
             "job_id": event.extra["job_id"],
             "place_id": event.extra["place_id"],
             "date": event.extra["date"],
+            "requests_limit": event.extra["requests_limit"],
             "points_uri": event.asset.uri,
         }
 
     @task(inlets=[POINTS_ASSET_ALIAS])
-    def get_point_keys(*, inlet_events: dict[str, list[Any]]) -> list[str]:
+    def get_point_keys(
+        requests_limit: int, *, inlet_events: dict[str, list[Any]]
+    ) -> list[str]:
         event = inlet_events[POINTS_ASSET_ALIAS][-1]
 
         points_uri = event.asset.uri
@@ -43,13 +47,30 @@ def geocoding_requests() -> None:
             aws_conn_id="minio_s3",
         )
 
-        return cast(
-            list[str],
-            hook.list_keys(
-                bucket_name=bucket_name,
-                prefix=points_key,
-            ),
+        point_keys = hook.list_keys(
+            bucket_name=bucket_name,
+            prefix=points_key,
         )
+
+        requests_prefix = points_key.replace(
+            "points",
+            "requests",
+        )
+
+        request_keys = hook.list_keys(
+            bucket_name=bucket_name,
+            prefix=requests_prefix,
+        )
+
+        processed_point_keys = {
+            key.replace("requests", "points") for key in request_keys
+        }
+
+        unprocessed_point_keys = [
+            key for key in point_keys if key not in processed_point_keys
+        ]
+
+        return unprocessed_point_keys[:requests_limit]
 
     @task(
         pool="yandex_geocoder",
@@ -117,7 +138,9 @@ def geocoding_requests() -> None:
 
     job = get_job_metadata()
 
-    point_keys = get_point_keys()
+    point_keys = get_point_keys(
+        requests_limit=job["requests_limit"],
+    )
 
     process_tasks = process_point.partial(
         place_id=job["place_id"],

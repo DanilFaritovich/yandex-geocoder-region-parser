@@ -28,13 +28,22 @@ POLYGONS_ASSET_ALIAS = AssetAlias("geocoding-polygons")
             type="integer",
             minimum=1,
         ),
+        "requests_limit": Param(
+            1000,
+            type="integer",
+            minimum=1,
+        ),
     },
 )
 def prepare_polygon() -> None:
 
     @task(outlets=[POLYGONS_ASSET_ALIAS])
     def generate_polygon(
-        place_id: int, distance_meters: int, *, outlet_events: dict[str, Any]
+        place_id: int,
+        distance_meters: int,
+        requests_limit: int,
+        *,
+        outlet_events: dict[str, Any],
     ) -> None:
         service = create_etl_service()
 
@@ -67,12 +76,14 @@ def prepare_polygon() -> None:
                 "place_id": place_id,
                 "date": job_date,
                 "distance_meters": distance_meters,
+                "requests_limit": requests_limit,
             },
         )
 
     generate_polygon(
         place_id="{{ params.place_id }}",
         distance_meters="{{ params.distance_meters }}",
+        requests_limit="{{ params.requests_limit }}",
     )
 
 

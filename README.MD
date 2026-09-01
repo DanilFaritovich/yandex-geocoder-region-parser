@@ -113,6 +113,9 @@ CI runs the full suite — Ruff, Mypy, unit/integration and Airflow tests — on
  
 ```bash
 cp .env.example .env   # fill in your Yandex Geocoder API key and database settings
+
+docker compose build
+
 docker compose up -d
 ```
  
