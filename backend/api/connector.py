@@ -4,6 +4,7 @@ Yandex Geocoder API implementation of GeocoderClient.
 
 import logging
 import time
+from types import TracebackType
 from typing import Any, Self, cast
 
 import requests
@@ -13,9 +14,11 @@ from backend.api.client import GeocoderClient
 from backend.api.exceptions import (
     YandexGeocoderAPIError,
     YandexGeocoderAuthError,
+    YandexGeocoderKeysExhaustedError,
     YandexGeocoderLimitError,
     YandexGeocoderParseError,
 )
+from backend.api.key_pool import ApiKeyPool, ApiKeyPoolExhaustedError
 from backend.api.models import (
     GeocodeDistrictCoordsRequest,
     GeocodeDistrictQueryRequest,
@@ -41,9 +44,18 @@ class YandexGeocoderConnector(GeocoderClient):
     def __init__(
         self,
         settings: GeocoderSettings | None = None,
+        key_pool: ApiKeyPool | None = None,
         logger: logging.Logger | None = None,
     ):
         self.settings = settings or GeocoderSettings()
+        self._key_pool = key_pool
+
+        if self._key_pool is None and not self.settings.api_key:
+            raise ValueError(
+                "YANDEX_GEOCODER_API_KEY or YANDEX_GEOCODER_API_KEYS_FILE "
+                "must be configured"
+            )
+
         self._logger = logger or logging.getLogger(__name__)
         self._session = requests.Session()
 
@@ -111,9 +123,7 @@ class YandexGeocoderConnector(GeocoderClient):
     ) -> GeocoderApiResponse:
         """Execute geocoding request and parse API response."""
 
-        params = geocode_request.params(
-            api_key=self.settings.api_key,
-        )
+        params = geocode_request.params(api_key=self.settings.api_key or "")
 
         geocode = self._get_geocode_query(geocode_request)
 
@@ -158,7 +168,9 @@ class YandexGeocoderConnector(GeocoderClient):
         query = params.get("geocode", "<unknown>")
         last_exc: Exception | None = None
 
-        for attempt in range(1, self.settings.retries + 1):
+        attempt = 1
+
+        while attempt <= self.settings.retries:
             self._logger.debug(
                 "Sending Yandex Geocoder request: query=%r, attempt=%d/%d",
                 query,
@@ -167,9 +179,12 @@ class YandexGeocoderConnector(GeocoderClient):
             )
 
             try:
+                api_key = self._acquire_api_key()
+                request_params = {**params, "apikey": api_key}
+
                 response = self._session.get(
                     self.settings.base_url,
-                    params=params,
+                    params=request_params,
                     timeout=self.settings.timeout,
                 )
 
@@ -180,6 +195,10 @@ class YandexGeocoderConnector(GeocoderClient):
                         response.status_code,
                     )
 
+                    if self._key_pool is not None:
+                        self._key_pool.disable(api_key, reason="HTTP 403")
+                        continue
+
                     raise YandexGeocoderAuthError("Invalid API key.")
 
                 if response.status_code == 429:
@@ -188,6 +207,10 @@ class YandexGeocoderConnector(GeocoderClient):
                         query,
                         response.status_code,
                     )
+
+                    if self._key_pool is not None:
+                        self._key_pool.exhaust(api_key, reason="HTTP 429")
+                        continue
 
                     raise YandexGeocoderLimitError(
                         "Yandex Geocoder API rate limit exceeded"
@@ -219,6 +242,9 @@ class YandexGeocoderConnector(GeocoderClient):
                 # Authentication errors are not retryable.
                 raise
 
+            except ApiKeyPoolExhaustedError as exc:
+                raise YandexGeocoderKeysExhaustedError(str(exc)) from exc
+
             except (
                 requests.RequestException,
                 YandexGeocoderAPIError,
@@ -241,6 +267,8 @@ class YandexGeocoderConnector(GeocoderClient):
 
                     time.sleep(self.settings.retry_delay)
 
+                attempt += 1
+
         self._logger.error(
             "Yandex Geocoder request failed after all retries: query=%r, attempts=%d",
             query,
@@ -251,6 +279,20 @@ class YandexGeocoderConnector(GeocoderClient):
             f"Failed after {self.settings.retries} attempts"
         ) from last_exc
 
+    def _acquire_api_key(self) -> str:
+        if self._key_pool is None:
+            if not self.settings.api_key:
+                raise ValueError("Yandex Geocoder API key is not configured")
+            return self.settings.api_key
+
+        lease = self._key_pool.acquire()
+        self._logger.debug(
+            "Yandex Geocoder API key acquired: key_index=%d, usage=%d",
+            lease.index,
+            lease.usage,
+        )
+        return lease.key
+
     # ------------------------------------------------------------------ #
     # Context manager
     # ------------------------------------------------------------------ #
@@ -258,5 +300,10 @@ class YandexGeocoderConnector(GeocoderClient):
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()

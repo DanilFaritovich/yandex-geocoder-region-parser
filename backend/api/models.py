@@ -167,7 +167,10 @@ class GeocoderSettings(BaseSettings):
         extra="ignore",
     )
 
-    api_key: str = Field(min_length=1, description="Yandex Maps API key")
+    api_key: str | None = Field(
+        default=None,
+        description="Fallback Yandex Maps API key when key rotation is disabled",
+    )
     base_url: str = Field(min_length=1, description="API endpoint")
     timeout: int = Field(default=10, description="HTTP request timeout in seconds")
     lang: str = Field(default="ru_RU", description="Response language")

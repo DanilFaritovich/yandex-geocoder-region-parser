@@ -134,6 +134,19 @@ The SQL queries used to fetch place data live in separate files rather than bein
 ### Secrets and local overrides
  
 The `ENV_PATH` field in `.env` lets you point to an additional `.env` file containing secrets (for example, real database credentials), which is kept out of the repository and loaded separately from `.env.example`.
+
+### Rotating Yandex Geocoder API keys
+
+To process points in sequential batches, put one API key per line in
+`data/api_keys.txt`. No additional environment variables are required. If the
+file does not exist, `YANDEX_GEOCODER_API_KEY` is used as a single-key pool.
+
+The key pool counts every HTTP attempt atomically, switches to the next key
+after 1000 uses, permanently disables keys rejected with HTTP 403, and marks
+HTTP 429 keys as exhausted until the next UTC day. Runtime state is stored in
+`data/api_keys.state.json`; it contains
+only key hashes and counters. When a batch finishes, the requests DAG starts
+another batch only if points and key capacity remain.
  
 ## 📊 Sample output
  
