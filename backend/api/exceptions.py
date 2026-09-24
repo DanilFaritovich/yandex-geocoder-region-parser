@@ -21,6 +21,12 @@ class YandexGeocoderLimitError(YandexGeocoderError):
     pass
 
 
+class YandexGeocoderKeysExhaustedError(YandexGeocoderError):
+    """Raised when all configured API keys are exhausted or disabled."""
+
+    pass
+
+
 class YandexGeocoderAPIError(YandexGeocoderError):
     """Raised when API returns an unexpected error."""
 

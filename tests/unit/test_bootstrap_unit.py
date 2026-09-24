@@ -18,7 +18,7 @@ def test_create_etl_service_returns_configured_service(monkeypatch):
     )
     monkeypatch.setattr(
         "backend.bootstrap.YandexGeocoderConnector",
-        lambda: geocoder_connector,
+        lambda **kwargs: geocoder_connector,
     )
     monkeypatch.setattr(
         "backend.bootstrap.GeocodingService",

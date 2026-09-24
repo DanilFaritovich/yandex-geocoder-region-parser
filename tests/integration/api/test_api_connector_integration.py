@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pytest_httpserver import HTTPServer
 
@@ -7,7 +9,8 @@ from backend.api.exceptions import (
     YandexGeocoderAuthError,
     YandexGeocoderParseError,
 )
-from backend.api.models import GeocoderApiResponse
+from backend.api.key_pool import ApiKeyPool
+from backend.api.models import GeocoderApiResponse, GeocoderSettings
 
 
 @pytest.fixture
@@ -283,3 +286,61 @@ class TestYandexGeocoderErrorHandling:
             geocoder_connector.get_districts_by_query(
                 query="Dubai",
             )
+
+
+@pytest.mark.integration
+class TestYandexGeocoderKeyRotation:
+    def test_403_disables_key_and_retries_with_next_key(
+        self,
+        httpserver: HTTPServer,
+        yandex_response: dict,
+        tmp_path: Path,
+    ):
+        keys_path = tmp_path / "api_keys.txt"
+        keys_path.write_text("invalid-key\nvalid-key\n", encoding="utf-8")
+
+        httpserver.expect_oneshot_request(
+            "/1.x/",
+            method="GET",
+            query_string={
+                "geocode": "Dubai",
+                "results": "1",
+                "skip": "0",
+                "lang": "ru_RU",
+                "apikey": "invalid-key",
+                "format": "json",
+                "kind": "district",
+            },
+        ).respond_with_data("Forbidden", status=403)
+
+        httpserver.expect_oneshot_request(
+            "/1.x/",
+            method="GET",
+            query_string={
+                "geocode": "Dubai",
+                "results": "1",
+                "skip": "0",
+                "lang": "ru_RU",
+                "apikey": "valid-key",
+                "format": "json",
+                "kind": "district",
+            },
+        ).respond_with_json(yandex_response)
+
+        settings = GeocoderSettings(
+            base_url=httpserver.url_for("/1.x/"),
+            api_key=None,
+            lang="ru_RU",
+            timeout=1,
+            retries=1,
+            retry_delay=0,
+        )
+
+        with YandexGeocoderConnector(
+            settings=settings,
+            key_pool=ApiKeyPool(keys_path=keys_path),
+        ) as connector:
+            response = connector.get_districts_by_query("Dubai")
+
+        assert isinstance(response, GeocoderApiResponse)
+        assert len(httpserver.log) == 2

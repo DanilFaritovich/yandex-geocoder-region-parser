@@ -54,4 +54,4 @@ jobs:
 
       - name: Run Airflow tests
         run: |
-          docker compose --profile tests run --rm airflow-tests
+          docker compose --profile tests run --rm --no-deps airflow-tests

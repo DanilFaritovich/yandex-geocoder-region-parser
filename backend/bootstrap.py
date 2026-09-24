@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from backend.api.connector import YandexGeocoderConnector
+from backend.api.key_pool import ApiKeyPool
 from backend.api.service import GeocodingService
 from backend.database.connector import PlaceDBConnector
 from backend.database.models import PlaceDBSettings
@@ -15,7 +16,9 @@ def create_etl_service() -> CoordsETLService:
     geometry_service = PolygonService()
 
     geocoding_service = GeocodingService(
-        YandexGeocoderConnector(),
+        YandexGeocoderConnector(
+            key_pool=ApiKeyPool.from_env_or_none(),
+        ),
     )
 
     place_service = PlaceService(
