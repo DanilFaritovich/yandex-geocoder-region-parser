@@ -1,4 +1,6 @@
 # 🗺️ Yandex API Region Parser
+
+**English** | [Русский](README.ru.md)
  
 > An ETL service that enriches locality data with district information using the **Yandex Geocoder API**, orchestrated with **Apache Airflow**.
  
