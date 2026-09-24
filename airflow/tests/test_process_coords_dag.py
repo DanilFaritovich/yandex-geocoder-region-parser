@@ -6,6 +6,7 @@ def test_geocoding_requests_dag():
 
     assert dag.dag_id == "geocoding_requests"
     assert dag.catchup is False
+    assert dag.max_active_runs == 1
 
     assert set(dag.task_ids) == {
         "get_job_metadata",
@@ -50,4 +51,4 @@ def test_finalize_requests_task():
 
     assert task is not None
     assert len(task.inlets) == 1
-    assert len(task.outlets) == 1
+    assert len(task.outlets) == 2
